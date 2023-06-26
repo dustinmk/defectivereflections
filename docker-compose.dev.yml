@@ -1,0 +1,40 @@
+version: "3"
+
+services:
+  postgres:
+    image: postgres:15
+    restart: always
+    environment:
+      - POSTGRES_USER=web
+      - POSTGRES_PASSWORD=7zxCVHDP8Oma2TtPibBLXVou
+      - POSTGRES_DB=defectivereflections
+    volumes:
+      - db_data:/var/lib/postgresql    
+    expose:
+      - "5432/tcp"
+    ports:
+      - "5432:5432"
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+        reservations:
+          memory: 128M
+  redis:
+    image: redis:7
+    build:
+      context: docker/redis
+    expose:
+      - "6379/tcp"
+    ports:
+      - "6379:6379"
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+        reservations:
+          memory: 128M
+volumes:
+  db_data:
+    driver: local
+
