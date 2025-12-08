@@ -75,7 +75,11 @@ const common_config = {
         new MiniCssExtractPlugin({
             filename: "index.[hash].css"
         })
-    ]
+    ],
+    externals: {
+        knex: "knex",
+        express: "express"
+    }
 }
 
 const web_config = {...common_config, ...{

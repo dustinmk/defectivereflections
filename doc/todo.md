@@ -1,0 +1,10 @@
+- log in user:
+    - validate
+    - session connection with redis
+    - log in / log out with session
+- frontend and admin area / init page
+- email - nodemailer
+- password reset
+- totp
+- user management page - sign up
+- captcha

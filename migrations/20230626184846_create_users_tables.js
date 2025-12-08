@@ -7,9 +7,10 @@ exports.up = function(knex) {
         .createTable("users", (table) => {
             table.increments("id");
             table.string("name", 255).notNullable();
-            table.string("username", 255).notNullable();
+            table.string("username", 255).notNullable().unique();
             table.string("email", 255).notNullable();
             table.string("totp_key", 255);
+            table.boolean("totp_enabled");
             table.string("password", 255).notNullable();
             table.string("reset_token", 255);
             table.datetime("reset_token_expiry");
