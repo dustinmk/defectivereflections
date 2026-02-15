@@ -86,6 +86,7 @@ const web_config = {...common_config, ...{
     entry: "./web/index.ts",
     output: {
         path: path.resolve(root, "dist", "web"),
+        publicPath: "/",
         filename: "index.[hash].js"
     },
     plugins: [...common_config.plugins, ...[

@@ -1,5 +1,9 @@
 import React from "react";
+import { Outlet } from "react-router";
 
 export default function() {
-    return <p>Home 4</p>;
+    return <div>
+        Home
+        <Outlet />
+    </div>
 }
