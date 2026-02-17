@@ -21,17 +21,24 @@ exports.up = function(knex) {
             table.string("name", 255).notNullable().unique();
             table.string("path", 255).notNullable().unique();
             table.dateTime("created").notNullable();
+            table.dateTime("edited").notNullable();
             table.integer("section_id").references("section.id");
         })
         .createTable("document_version", (table) => {
             table.increments("id");
             table.text("content");
-            table.string("revision", 255).notNullable();
             table.text("comments");
+            table.string("revision", 255).notNullable();
+            table.integer("version_number").notNullable();
             table.dateTime("created").notNullable();
             table.dateTime("edited").notNullable();
             table.integer("document_id").references("document.id");
             table.integer("status_id").references("status.id");
+        })
+        .createTable("document_primary_version", (table) => {
+            table.increments("id"),
+            table.integer("document_id").references("document.id").unique(),
+            table.integer("document_version_id").references("document_version.id");
         })
         .createTable("attachment", (table) => {
             table.increments("id");

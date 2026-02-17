@@ -1,4 +1,4 @@
-import config from "web/config";
+import {config as _config} from "web/config";
 
 export type GetParams = {[index: string]: string | number | boolean | Array<string | number | boolean>};
 
@@ -70,7 +70,8 @@ const encodeParams = (prefix: string, params: GetParams): string => {
 }
 
 const apiQuery = async (path: string, method: string, params: GetParams, body: object) => {
-
+    const config = _config;
+    
     const param_string = encodeParams("", params);
     
     const body_string = JSON.stringify(body);
@@ -135,14 +136,20 @@ const apiQuery = async (path: string, method: string, params: GetParams, body: o
                     return;
                 }
 
+                try{
                 const data = await response.json();
+                
                 if (response.status === 401 || response.status === 403) {
-                    resolve({
+                    return resolve({
                         status: "auth",
                         message: data.message
                     });
                 } else {
-                    resolve(data);
+                    return resolve(data);
+                }
+                }
+                catch (err) {
+                    throw err;
                 }
 
                 return;

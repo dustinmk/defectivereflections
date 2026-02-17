@@ -2,6 +2,7 @@ import path from "path";
 import config from "server/config";
 import app from "server/app";
 import "server/api/users";
+import "server/api/documents";
 
 app.get("/*", (req, res) => {
     res.sendFile(path.resolve(process.cwd(), "../web/index.html"));
