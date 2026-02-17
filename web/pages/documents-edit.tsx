@@ -6,11 +6,13 @@ import { document_api } from "web/api/document_api";
 import { meta_api } from "web/api/meta_api";
 import { formatDateTime, formatInputDate } from "web/util";
 import { useStatusStore } from "web/api/data_store";
+import { useDocuments } from "web/store";
 
 
 export default function() {
     const params = useParams<{document_path: string}>();
     const navigate = useNavigate();
+    const document_store = useDocuments();
 
     const [document, setDocument] = React.useState<Document>({
         id: null,
@@ -69,19 +71,19 @@ export default function() {
     const doSave = async () => {
         // TODO: Warnings/errors
         if (encodeURI(document.path) === document.path) {
-            await document_api.save_document(document, document_version)
-                .then(result => {
-                    setDocument(result.document);
-                    if (result.document_version.id !== null) {
-                        setDocumentVersion(result.document_version);
-                    } else {
-                        setDocumentVersion({...EMPTY_DOCUMENT_VERSION});
-                    }
+            const result = await document_api.save_document(document, document_version)
+            setDocument(result.document);
+            if (result.document_version.id !== null) {
+                setDocumentVersion(result.document_version);
+            } else {
+                setDocumentVersion({...EMPTY_DOCUMENT_VERSION});
+            }
 
-                    if (document.id === null) {
-                        navigate(`/admin/documents/edit/${document.path}`)
-                    }
-                });
+            document_store.fetch();
+
+            if (document.id === null) {
+                navigate(`/admin/documents/edit/${document.path}`)
+            }
         }
     }
 
@@ -94,7 +96,6 @@ export default function() {
             const new_version = await document_api.fetch_document_version(document.path || "", version_number);
             setDocumentVersion(new_version);
         }
-        
     }
 
     const setPrimaryVersion = async () => {
@@ -128,6 +129,7 @@ export default function() {
     const removeDocument = async () => {
         if (document.id !== null) {
             await document_api.remove_document(document.path);
+            document_store.fetch();
             navigate("/admin/documents");
         }
     }

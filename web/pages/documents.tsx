@@ -1,16 +1,18 @@
 import React from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Document } from "common/model"
 import { document_api } from "web/api/document_api";
 import { useStatusStore } from "web/api/data_store";
+import { useDocuments } from "web/store";
 
 export default function() {
     const navigate = useNavigate();
-    const [documents, setDocuments] = React.useState<Document[]>([]);
     const status = useStatusStore();
+    const document_store = useDocuments();
+    const documents = document_store.documents;
     
     React.useEffect(() => {
-        document_api.list_documents().then(result => setDocuments(result));
+        document_store.fetch();
     }, []);
 
     return <div>
@@ -23,5 +25,6 @@ export default function() {
                 </li>
             })}
         </ul>
+        <Outlet />
     </div>;
 }

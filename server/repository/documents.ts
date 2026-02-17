@@ -5,6 +5,7 @@ import { Knex } from "knex";
 import moment from "moment";
 import db from "server/db";
 
+const PARTIAL_DOC_VERSION_COLS = ["id", "created", "edited", "revision", "version_number", "status_id"];
 
 export async function listStatus() {
     return await db.transaction(async trx => {
@@ -20,14 +21,11 @@ export async function listSections() {
 
 export async function listDocuments() {
     return await db.transaction(async trx => {
-        const documents = await trx
-            .select("document.*", "document_primary_version.document_version_id as primary_document_version_id")
-            .from<DocumentRecord>("document")
-            .leftJoin("document_primary_version", "document_primary_version.document_id", "document.id")
+        const documents = await doc_select(trx)
             .orderBy("edited", "desc");
         
         const versions = await trx
-            .select("id", "created", "edited", "revision", "version_number", "document_id", "status_id")
+            .select("document_id", ...PARTIAL_DOC_VERSION_COLS)
             .rowNumber("version_rank", function() {this.orderBy("version_number", "desc").partitionBy("document_id")})
             .from<DocumentVersionRecord>("document_version")
 
@@ -49,15 +47,12 @@ export async function listDocuments() {
 
 export async function fetchDocument(document_path: string) {
     return await db.transaction(async trx => {
-        const document = await trx
-            .select("document.*", "document_primary_version.document_version_id as primary_document_version_id")
-            .from<DocumentRecord>("document")
-            .leftJoin("document_primary_version", "document_primary_version.document_id", "document.id")
+        const document = await doc_select(trx)
             .where("path", document_path)
             .first();
 
         const versions = await trx
-            .select("id", "created", "edited", "revision", "version_number", "status_id")
+            .select(...PARTIAL_DOC_VERSION_COLS)
             .from("document_version")
             .where("document_id", document.id)
             .orderBy("version_number", "desc") as DocumentVersion[];
@@ -68,15 +63,12 @@ export async function fetchDocument(document_path: string) {
 
 export async function fetchDocumentById(document_id: number) {
     return await db.transaction(async trx => {
-        const document = await trx
-            .select("document.*", "document_primary_version.document_version_id as primary_document_version_id")
-            .from<DocumentRecord>("document")
-            .leftJoin("document_primary_version", "document_primary_version.document_id", "document.id")
+        const document = await doc_select(trx)
             .where("document.id", document_id)
             .first();
 
         const versions = await trx
-            .select("id", "created", "edited", "revision", "version_number", "status_id")
+            .select(...PARTIAL_DOC_VERSION_COLS)
             .from("document_version")
             .where("document_id", document.id)
             .orderBy("version_number", "desc") as DocumentVersion[];
@@ -304,4 +296,11 @@ export async function removeDocument(document_path: string) {
                 .del();
         }
     });
+}
+
+const doc_select = (trx: Knex.Transaction<any, any[]>) => {
+    return trx
+        .select("document.*", "document_primary_version.document_version_id as primary_document_version_id")
+        .from<DocumentRecord>("document")
+        .leftJoin("document_primary_version", "document_primary_version.document_id", "document.id")
 }
