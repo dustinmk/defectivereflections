@@ -1,9 +1,12 @@
 
-import { Document, DocumentRecord, DocumentVersion, DocumentVersionRecord, EMPTY_DOCUMENT_VERSION, Section, Status } from "common/model";
-import crypto from "crypto";
+import { Attachment, Document, DocumentRecord, DocumentVersion, DocumentVersionRecord, EMPTY_DOCUMENT_VERSION, Section, Status } from "common/model";
+import crypto, { randomUUID } from "crypto";
 import { Knex } from "knex";
 import moment from "moment";
+import path, { dirname } from "path";
+import fsPromises, { constants } from "fs/promises";
 import db from "server/db";
+import fs from "fs";
 
 const PARTIAL_DOC_VERSION_COLS = ["id", "created", "edited", "revision", "version_number", "status_id"];
 
@@ -92,7 +95,13 @@ export async function fetchDocumentVersion(document_path: string, document_versi
             .where("document.path", document_path)
             .first();
 
-        return document_version;
+        const attachments = await trx
+            .select()
+            .from<Attachment>("attachment")
+            .where("document_id", document_version.document_id)
+            .where("document_version_id", document_version.id);
+
+        return {...document_version, attachments} as DocumentVersion;
     });
 }
 
@@ -108,7 +117,13 @@ export async function fetchDocumentVersionById(document_version_id: number | nul
             .where("id", document_version_id)
             .first();
 
-        return document_version;
+        const attachments = await trx
+            .select()
+            .from<Attachment>("attachment")
+            .where("document_id", document_version.document_id)
+            .where("document_version_id", document_version.id);
+
+        return {...document_version, attachments} as DocumentVersion;
     });
 }
 
@@ -262,13 +277,18 @@ export async function removeDocumentVersion(document_path: string, document_vers
             .first()
 
         if (result !== undefined && result.document_id !== null && result.id !== null) {
-            await trx("document_version")
-                .where("id", result.id)
+            await trx("attachment")
+                .where("document_id", result.document_id)
+                .where("document_version_id", result.id)
                 .del();
 
             await trx("document_primary_version")
                 .where("document_id", result.document_id)
                 .where("document_version_id", result.id)
+                .del();
+
+            await trx("document_version")
+                .where("id", result.id)
                 .del();
         }
     });
@@ -283,18 +303,290 @@ export async function removeDocument(document_path: string) {
             .first();
 
         if (document_id !== undefined) {
-            await trx("document")
-                .where("id", document_id)
+        
+            await trx("document_primary_version")
+                .where("document_id", document_id)
+                .del();
+
+            await trx("attachment")
+                .where("document_id", document_id)
                 .del();
 
             await trx("document_version")
                 .where("document_id", document_id)
                 .del();
 
-            await trx("document_primary_version")
-                .where("document_id", document_id)
+            await trx("document")
+                .where("id", document_id)
                 .del();
         }
+    });
+}
+
+export async function uploadFile(filepath: string | undefined, content: string) {
+    const abs_save_folder = path.resolve(process.cwd(), "upload");
+    await fsPromises.mkdir(abs_save_folder, {recursive: true});
+
+    if (filepath !== undefined) {
+        await validateUploadPath(filepath);
+    }
+
+    if (filepath === undefined) {
+        filepath = randomUUID() + ".tmp";
+        while (await checkAccess(`${abs_save_folder}/${filepath}`)) {
+            filepath = randomUUID() + ".tmp";
+        }
+    }
+
+    await fsPromises.appendFile(`${abs_save_folder}/${filepath}`, new Uint8Array(Buffer.from(content, "base64")));
+
+    return filepath;
+}
+
+const checkAccess = (fullpath: string) => {
+    return new Promise(resolve => fsPromises.access(fullpath, constants.R_OK).then(() => resolve(true)).catch(() => resolve(false)))
+}
+
+const validateUploadPath = async (filepath: string) => {
+    const split_path = filepath?.split(".");
+    if (split_path[1] !== "tmp") {
+        throw new Error("Not a valid tmp file");
+    }
+
+    const uuid_regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+    if (!uuid_regex.test(split_path[0])) {
+        throw new Error("Not a valid UUID file");
+    }
+
+    const fullpath = path.resolve(process.cwd(), "upload", filepath);
+    if (!fullpath.startsWith(path.join(process.cwd(), "upload"))) {
+        throw new Error("Path escaped root");
+    }
+
+    const access = await checkAccess(fullpath);
+    if (!access) {
+        throw new Error("File does not exist");
+    }
+
+    const stat = await fsPromises.stat(fullpath);
+    if (!stat.isFile()) {
+        throw new Error("File does not exist");
+    }
+
+    if (stat.size > 2 * 1024 * 1024 * 1024) {
+        throw new Error("File size limit reached");
+    }
+}
+
+export async function saveAttachment(
+    document_path: string,
+    version_number: number,
+    attachment_name: string,
+    new_name: string | undefined,
+    content_path: string | undefined
+) {
+    // Create if not exist
+    // If existing attachment on this version, just update the attachment - remove old file and replace with new one
+    // If existing attachment name on prior version,
+
+    if (content_path !== undefined) {
+        await validateUploadPath(content_path);
+    }
+
+    const save_name = new_name === undefined ? attachment_name : new_name.toLocaleLowerCase();
+    const split_name = save_name.split(".");
+    const attachment_type = split_name[split_name.length - 1];
+
+    return await db.transaction(async trx => {
+        const existing_document_result = await trx
+            .select("document.id as document_id", "document_version.id as document_version_id")
+            .from<{document_id: number, document_version_id: number}>("document")
+            .join("document_version", "document.id", "document_version.document_id")
+            .where("document.path", document_path)
+            .where("document_version.version_number", version_number)
+            .first();
+
+        if (existing_document_result === undefined) {
+            throw new Error("Invalid document version");
+        }
+
+        const existing_attachment_result = await trx
+            .select()
+            .from<Attachment>("attachment")
+            .where("attachment.name", attachment_name)
+            .where("attachment.document_id", existing_document_result.document_id)
+            .where("attachment.document_version_id", existing_document_result.document_version_id)
+            .first();
+
+        let save_file: string | null = null;
+        if (content_path !== undefined) {
+            const rel_save_folder = "/attachments"
+            const abs_save_folder = path.resolve(process.cwd(), "..", "web", "attachments");
+            const original_file = path.resolve(process.cwd(), "upload", `${content_path}`);
+
+            await fsPromises.mkdir(abs_save_folder, {recursive: true});
+            const filename = `${document_path}_${version_number}_${attachment_name}_${randomUUID()}.${attachment_type}`;
+            save_file = `${rel_save_folder}/${filename}`;
+
+            const abs_file = `${abs_save_folder}/${filename}`;
+            if (!path.resolve(abs_file).startsWith(path.resolve(abs_save_folder))) {
+                throw new Error("Path escape detected");
+            }
+
+            const file_exists = await checkAccess(abs_file);
+            if (file_exists) {
+                throw new Error("File already exists");
+            }
+
+            await fsPromises.rename(original_file, `${abs_save_folder}/${filename}`);
+        }
+
+        if (existing_attachment_result !== undefined && existing_attachment_result.id !== null) {
+            let update_data: {[index: string]: any} = {"edited": new Date()};
+            if (new_name !== undefined) {
+                update_data = {...update_data, name: new_name}
+            }
+            if (save_file !== null) {
+                update_data = {...update_data, path: save_file, type: attachment_type, content: null}
+            }
+
+            await trx("attachment")
+                .where("id", existing_attachment_result.id)
+                .update(update_data);
+
+            const file_used_count = await trx("attachment")
+                .count({count: "path"})
+                .where("path", existing_attachment_result.path);
+
+            if ((file_used_count[0].count || 0) <= 0) {
+                await fsPromises.rm(existing_attachment_result.path);
+            }
+
+        } else {
+            await trx("attachment")
+                .insert({
+                    "name": attachment_name,
+                    "path": save_file,
+                    "type": attachment_type,
+                    "content": null,
+                    "created": new Date(),
+                    "edited": new Date(),
+                    "document_id": existing_document_result.document_id,
+                    "document_version_id": existing_document_result.document_version_id,
+                }, ["id"])
+        }
+    });
+
+    // Creating a new document version: copy attachments from prior version. Don't copy the files, just the attachment rows
+    // Also be able add attachments from prior versions
+}
+
+export async function copyAttachments(document_path: string, version_number: number, prior_version: number, attachment_names: string[]) {
+    return await db.transaction(async trx => {
+        const prior_document_result = await trx
+            .select("document.id as document_id", "document_version.id as document_version_id")
+            .from<{document_id: number, document_version_id: number}>("document")
+            .join("document_version", "document.id", "document_version.document_id")
+            .where("document.path", document_path)
+            .where("document_version.version_number", prior_version)
+            .first();
+
+        const new_document_result = await trx
+            .select("document.id as document_id", "document_version.id as document_version_id")
+            .from<{document_id: number, document_version_id: number}>("document")
+            .join("document_version", "document.id", "document_version.document_id")
+            .where("document.path", document_path)
+            .where("document_version.version_number", version_number)
+            .first();
+
+        const prior_attachment_result = await trx
+            .select()
+            .from<Attachment>("attachment")
+            .whereIn("attachment.name", attachment_names)
+            .where("attachment.document_id", prior_document_result.document_id)
+            .where("attachment.document_version_id", prior_document_result.document_version_id);
+        
+        if (prior_document_result === undefined || new_document_result == undefined || prior_attachment_result === undefined) {
+            throw new Error("Invalid document versions");
+        }
+
+        const new_attachments = prior_attachment_result.map(result => ({
+            name: result.name,
+            path: result.path,
+            type: result.type,
+            content: result.content,
+            created: result.created,
+            edited: result.edited,
+            document_id: new_document_result.document_id,
+            document_version_id: new_document_result.document_version_id
+        }));
+
+        await trx.batchInsert("attachment", new_attachments);
+    });
+}
+
+export async function removeAttachment(document_path: string, version_number: number, attachment_name: string) {
+    // Scan for attachment path. If no other version holds the attachment, delete it from disk, otherwise just remove the row
+    return await db.transaction(async trx => {
+        const document_result = await trx
+            .select("document.id as document_id", "document_version.id as document_version_id")
+            .from<{document_id: number, document_version_id: number}>("document")
+            .join("document_version", "document.id", "document_version.document_id")
+            .where("document.path", document_path)
+            .where("document_version.version_number", version_number)
+            .first();
+
+        const existing_attachment = await trx("attachment")
+            .select()
+            .from<Attachment>("attachment")
+            .where("document_id", document_result.document_id)
+            .where("document_version_id", document_result.document_version_id)
+            .where("name", attachment_name)
+            .first();
+
+        if (existing_attachment === undefined) {
+            return;
+        }
+
+        await trx("attachment")
+            .where("id", existing_attachment.id)
+            .del();
+
+        const file_used_count = await trx("attachment")
+            .count({count: "path"})
+            .where("path", existing_attachment.path);
+
+        if ((file_used_count[0].count || 0) <= 0) {
+            await fsPromises.rm(path.join(process.cwd(), "..", "web", existing_attachment.path));
+        }
+    });
+}
+
+export async function listAttachments(document_path: string, version_number: number) {
+    // List attachments available from all versions, only the latest versions of them by name
+    return await db.transaction(async trx => {
+        const result = await trx
+            .select("attachment.*")
+            .from<Attachment>("attachment")
+            .join("document", "document.id", "attachment.document_id")
+            .join("document_version", "document_version.id", "attachment.document_version_id")
+            .where("document.path", document_path)
+            .where("document_version.version_number", version_number)
+            .orderBy("attachment.name", "asc");
+
+        const attachments = result.map(attachment => {
+            return {
+                name: attachment.name,
+                path: attachment.path,
+                type: attachment.type,
+                content: attachment.content,
+                created: attachment.created,
+                edited: attachment.edited
+            }
+        })
+
+        return attachments;
     });
 }
 

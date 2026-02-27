@@ -1,4 +1,4 @@
-import { Document, DocumentVersion, EMPTY_DOCUMENT_VERSION, Status } from "common/model";
+import { Document, DocumentVersion, Attachment, EMPTY_DOCUMENT_VERSION, Status, EMPTY_DOCUMENT } from "common/model";
 import React from "react";
 import {produce} from "immer";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
@@ -7,35 +7,21 @@ import { meta_api } from "web/api/meta_api";
 import { formatDateTime, formatInputDate } from "web/util";
 import { useStatusStore } from "web/api/data_store";
 import { useDocuments } from "web/store";
-
+import { create } from "zustand";
+import { combine } from "zustand/middleware";
 
 export default function() {
     const params = useParams<{document_path: string}>();
     const navigate = useNavigate();
-    const document_store = useDocuments();
+    const doc_store = useDocuments();
 
-    const [document, setDocument] = React.useState<Document>({
-        id: null,
-        name: "",
-        path: "",
-        created: null,
-        edited: null,
-        section_id: null,
-        versions: [],
-        primary_document_version_id: null
-    });
+    const {documents, status_list, document, document_version} = doc_store;
 
-    const [document_version, setDocumentVersion] = React.useState<DocumentVersion>({...EMPTY_DOCUMENT_VERSION});
-
-    const status_list = useStatusStore();
-
-    const resolveStatusId = (status_name: string) => {
-        const result = [...status_list.values()].find(status => status.name === status_name);
-        if (result === undefined) {
-            return -1;
-        }
-        return result.id;
-    }
+    // React.useEffect(() => {
+    //     setInterval(async () => {
+    //         await current_document().persistCurrentState();
+    //     }, 5000);
+    // }, [current_document().document, current_document().document_version])
 
     const resolveStatusName = (status_id: number | null) => {
         if (status_id === null) {
@@ -50,101 +36,51 @@ export default function() {
     }
 
     React.useEffect(() => {
-        if (params.document_path !== undefined) {
-            document_api.fetch_document(params.document_path)
-                .then(result => {
-                    setDocument(result);
-                    return document_api.fetch_document_version(params.document_path || "", result.versions.length > 0 ? result.versions[0].version_number : null);
-                })
-                .then(result => {
-                    setDocumentVersion(result)
-                });
+        if (documents.length === 0) {
+            doc_store.fetchDocuments()
         }
-    }, [params.document_path]);
+    }, [documents.length]);
 
     React.useEffect(() => {
-        if (status_list.size > 0 && (document_version.status_id === null || status_list.get(document_version.status_id) === undefined)) {
-            document_version.status_id = status_list.keys().next().value || 0;
+        if (status_list.size === 0) {
+            doc_store.fetchMeta()
+        }
+    }, [status_list.size]);
+
+    React.useEffect(() => {
+        doc_store.fetch(params.document_path);
+    }, [params.document_path, document.id]);
+
+    React.useEffect(() => {
+        if (status_list.size > 0 && (document_version.status_id === null || status_list.get(document_version.status_id || -1) === undefined)) {
+            doc_store.setDocumentVersionStatus(status_list.keys().next().value || 0);
         }
     }, [status_list, document_version.status_id]);
 
-    const doSave = async () => {
-        // TODO: Warnings/errors
-        if (encodeURI(document.path) === document.path) {
-            const result = await document_api.save_document(document, document_version)
-            setDocument(result.document);
-            if (result.document_version.id !== null) {
-                setDocumentVersion(result.document_version);
-            } else {
-                setDocumentVersion({...EMPTY_DOCUMENT_VERSION});
-            }
-
-            document_store.fetch();
-
-            if (document.id === null) {
-                navigate(`/admin/documents/edit/${document.path}`)
-            }
-        }
-    }
-
-    const changeVersion = async (version_number: number | null) => {
-        await doSave();
-        if (version_number === null) {
-            setDocumentVersion({...EMPTY_DOCUMENT_VERSION});
-
-        } else {
-            const new_version = await document_api.fetch_document_version(document.path || "", version_number);
-            setDocumentVersion(new_version);
-        }
-    }
-
-    const setPrimaryVersion = async () => {
-        if (document.id !== null && document_version.id !== null && document_version.version_number !== null) {
-            const result = await document_api.set_primary_version(document.path, document_version.version_number)
-            setDocument(result);
-        }
-    }
-
-    const removePrimaryVersion = async () => {
-        if (document.id !== null) {
-            const result = await document_api.remove_primary_version(document.path)
-            setDocument(result);
-        }
-    }
-
-    const removeVersion = async () => {
-        if (document.id !== null && document_version.id !== null && document_version.version_number !== null) {
-            const result = await document_api.remove_version(document.path, document_version.version_number)
-            setDocument(result);
-            if (result.versions.length > 0) {
-                const version = await document_api.fetch_document_version(document.path || "", result.versions[0].version_number);
-                setDocumentVersion(version);
-
-            } else {
-                setDocumentVersion({...EMPTY_DOCUMENT_VERSION});
-            }
-        }
-    }
-
     const removeDocument = async () => {
-        if (document.id !== null) {
-            await document_api.remove_document(document.path);
-            document_store.fetch();
-            navigate("/admin/documents");
+        await doc_store.removeDocument();
+        navigate("/admin/documents");
+    }
+
+    const save = async () => {
+        const init_id = document.id;
+        await doc_store.save();
+        await doc_store.fetchDocuments();
+        if (init_id === null) {
+            navigate(`/admin/documents/edit/${document.path}`);
         }
     }
 
     return <div>
         <div>
-            <button onClick={doSave}>Save</button>
+            <button onClick={save}>Save</button>
         </div>
         <div>
             <label htmlFor="document-edit--name">Name</label>
             <input 
                 type="text"
                 id="document-edit--name"
-                onChange={evt => setDocument(produce((document) =>
-                    {document.name = evt.target.value}))}
+                onChange={evt => doc_store.setDocumentName(evt.target.value)}
                 value={document.name}
             ></input>
         </div>
@@ -173,8 +109,7 @@ export default function() {
             <input 
                 type="text"
                 id="document-edit--path"
-                onChange={evt => setDocument(produce((document) =>
-                    {document.path = evt.target.value}))}
+                onChange={evt => doc_store.setDocumentPath(evt.target.value)}
                 value={document.path}
             ></input>
         </div>
@@ -182,13 +117,13 @@ export default function() {
             <label htmlFor="document-edit--versions">Version</label>
             <ul id="document-edit--versions">
                 <li>
-                    <a onClick={() => changeVersion(null)}>
+                    <a onClick={() => doc_store.setVersion(null)}>
                         [New document version]
                     </a>
                 </li>
                 {document.versions.map(version => {
                     return <li>
-                        <a onClick={() => changeVersion(version.version_number)}>
+                        <a onClick={() => doc_store.setVersion(version.version_number)}>
                             {version.id === document.primary_document_version_id && "Published"} {version.id}: {version.revision} ({formatDateTime(version.edited)})
                         </a>
                     </li>
@@ -199,8 +134,7 @@ export default function() {
             <label htmlFor="document-edit--status">Status</label>
             <select
                 id="document-edit--status"
-                onChange={evt => setDocumentVersion(produce((document_version) =>
-                    {document_version.status_id = resolveStatusId(evt.target.value)}))}
+                onChange={evt => doc_store.setDocumentVersionStatus(parseInt(evt.target.value))}
                 value={resolveStatusName(document_version.status_id)}
             >
                 {[...status_list.values()].map(status => <option value={status.name}>{status.display_name}</option>)}
@@ -211,8 +145,7 @@ export default function() {
             <input 
                 type="text"
                 id="document-edit--revision"
-                onChange={evt => setDocumentVersion(produce((document_version) =>
-                    {document_version.revision = evt.target.value}))}
+                onChange={evt => doc_store.setDocumentVersionRevision(evt.target.value)}
                 value={document_version.revision}
             ></input>
         </div>
@@ -220,8 +153,7 @@ export default function() {
             <label htmlFor="document-edit--comments">Comments</label>
             <textarea
                 id="document-edit--comments"
-                onChange={evt => setDocumentVersion(produce((document_version) =>
-                    {document_version.comments = evt.target.value}))}
+                onChange={evt => doc_store.setDocumentVersionComments(evt.target.value)}
                 value={document_version.comments}
             ></textarea>
         </div>
@@ -229,16 +161,141 @@ export default function() {
             <label htmlFor="document-edit--content">Content</label>
             <textarea
                 id="document-edit--content"
-                onChange={evt => setDocumentVersion(produce((document_version) =>
-                    {document_version.content = evt.target.value}))}
+                onChange={evt => doc_store.setDocumentVersionContent(evt.target.value)}
                 value={document_version.content}
             ></textarea>
         </div>
         <div>
-            <button onClick={setPrimaryVersion} disabled={document.id === null || document_version.id === null || document.primary_document_version_id === document_version.id}>Publish</button>
-            <button onClick={removePrimaryVersion} disabled={document.id === null || document.primary_document_version_id === null}>Remove from Public</button>
-            <button onClick={removeVersion} disabled={document_version.id === null}>Remove Version</button>
-            <button onClick={removeDocument} disabled={document.id === null}>Remove Document</button>
+            <button
+                onClick={doc_store.setPrimaryVersion}
+                disabled={document.id === null || document_version.id === null || document.primary_document_version_id === document_version.id}
+            >Publish</button>
+
+            <button
+                onClick={doc_store.removePrimaryVersion}
+                disabled={document.id === null || document.primary_document_version_id === null}
+            >Revoke</button>
+
+            <button
+                onClick={doc_store.removeVersion} disabled={document_version.id === null}
+            >Remove Version</button>
+
+            <button
+                onClick={removeDocument} disabled={document.id === null}
+            >Remove Document</button>
+
+        </div>
+        <div>
+            <ul>
+                <li><UploadAttachment /></li>
+                {document_version.attachments.map(attachment => {
+                    return <li>
+                        <AttachmentItem attachment={attachment} />
+                    </li>
+                })}
+            </ul>
         </div>
     </div>;
+}
+
+const UploadAttachment = () => {
+    const doc_store = useDocuments();
+    const [name, setName] = React.useState("");
+    const [file, setFile] = React.useState<File | null>(null);
+
+    const updateAttachment = async () => {
+        const file = await uploadFile()
+        setFile(file);
+        if (name.length === 0 && file !== null) {
+            setName(file.name);
+        }
+    }
+
+    const submit = async () => {
+        if (name.length > 0 && file !== null) {
+            const tmp_path = await document_api.upload_file(file);
+            doc_store.addAttachment(name, tmp_path);
+            setName("");
+            setFile(null);
+        }
+    }
+
+    return <>
+        <input value={name} onChange={evt => setName(evt.target.value)}></input>
+        <button onClick={updateAttachment}>+</button>
+        <button onClick={submit} disabled={name.length === 0 || file === null}>Submit</button>
+    </>
+}
+
+const AttachmentItem = (props: {attachment: Attachment}) => {
+    const doc_store = useDocuments();
+    const [do_edit, setDoEdit] = React.useState(false);
+    const elem_ref = React.useRef<HTMLSpanElement>(null);
+
+    React.useEffect(() => {
+        const listener = (evt: MouseEvent) => {
+            if (
+                evt.target !== null
+                && elem_ref.current !== null
+                && evt.target.hasOwnProperty("contains")
+                && (evt.target as HTMLElement).contains(elem_ref.current) && !do_edit
+            ) {
+                setDoEdit(false)
+            }
+        };
+
+        document.body.addEventListener("click", listener);
+
+        return () => {
+            document.body.removeEventListener("click", listener);
+        }
+
+    }, [do_edit]);
+
+    if (props.attachment.id === null) {
+        return <></>
+    }
+
+    const updateAttachmentContent = async () => {
+        const file = await uploadFile();
+        if (file !== null) {
+            const tmp_path = await document_api.upload_file(file);
+            doc_store.updateAttachmentContent(props.attachment.name, tmp_path)
+        }
+    }
+
+    if (do_edit) {
+        return <span ref={elem_ref}>
+            <input
+                value={props.attachment.name}
+                onChange={evt => doc_store.updateAttachmentName(props.attachment.name, evt.currentTarget.value)}
+            ></input>
+            <button onClick={updateAttachmentContent}>+</button>
+        </span>
+    }
+
+    return <span>
+        {["jpg", "png"].indexOf(props.attachment.type) >= 0 && <img src={props.attachment.path}></img>}
+        <span onClick={() => setDoEdit(true)}>{props.attachment.name}</span>
+        <button onClick={() => doc_store.removeAttachment(props.attachment.name)}>X</button>
+    </span>
+}
+
+const uploadFile = () => {
+    const upload_elem = document.createElement("input");
+    const type_attribute = document.createAttribute("type");
+    type_attribute.value = "file";
+    upload_elem.attributes.setNamedItem(type_attribute);
+    const promise = new Promise<File | null>((resolve, reject) => {
+        upload_elem.addEventListener("change", _evt => {
+            const evt = _evt as unknown as React.ChangeEvent<HTMLInputElement>;
+            if (evt.target.files !== null && evt.target.files.length > 0) {
+                const file = evt.target.files.item(0);
+                resolve(file)
+            }
+        });
+    });
+    
+    upload_elem.click();
+    return promise;
 }

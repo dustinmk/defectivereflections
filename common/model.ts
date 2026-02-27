@@ -54,10 +54,24 @@ export const EMPTY_DOCUMENT_VERSION = {
     created: null,
     edited: null,
     document_id: null, 
-    status_id: 0
-};
+    status_id: 0,
+    attachments: []
+} as DocumentVersion;
 
-export type DocumentVersion = DocumentVersionRecord;
+export const EMPTY_DOCUMENT = {
+    id: null,
+    name: "",
+    path: "",
+    created: null,
+    edited: null,
+    section_id: null,
+    versions: [],
+    primary_document_version_id: null
+} as Document;
+
+export interface DocumentVersion extends DocumentVersionRecord {
+    attachments: Attachment[];
+};
 
 export interface Attachment {
     id: number | null;
@@ -68,4 +82,5 @@ export interface Attachment {
     created: Date | null;
     edited: Date | null;
     document_id: number | null;
+    document_version_id: number | null;
 }

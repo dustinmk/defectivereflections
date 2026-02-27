@@ -48,6 +48,7 @@ exports.up = function(knex) {
             table.binary("content");
             table.dateTime("created").notNullable();
             table.dateTime("edited").notNullable();
+            table.integer("document_version_id").references("document_version.id");
             table.integer("document_id").references("document.id");
         })
         .then(() => knex("section").insert([
@@ -76,6 +77,7 @@ exports.up = function(knex) {
 exports.down = function(knex) {
     return knex.schema
         .dropTable("attachment")
+        .dropTable("document_primary_version")
         .dropTable("document_version")
         .dropTable("document")
         .dropTable("status")
