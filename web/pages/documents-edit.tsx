@@ -9,6 +9,10 @@ import { useStatusStore } from "web/api/data_store";
 import { useDocuments } from "web/store";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
+import rehypePrism from "rehype-prism-plus";
+import CodeEditor from "@uiw/react-textarea-code-editor";
+import Markdown from "react-markdown";
+import { confirmModal } from "web/components/modal";
 
 export default function() {
     const params = useParams<{document_path: string}>();
@@ -151,37 +155,51 @@ export default function() {
         </div>
         <div>
             <label htmlFor="document-edit--comments">Comments</label>
-            <textarea
-                id="document-edit--comments"
-                onChange={evt => doc_store.setDocumentVersionComments(evt.target.value)}
+            <MarkdownEditor
                 value={document_version.comments}
-            ></textarea>
+                onChange={value => doc_store.setDocumentVersionComments(value)}
+                transform={value => transformMarkdown(value, document_version.attachments)}
+            />
         </div>
         <div>
             <label htmlFor="document-edit--content">Content</label>
-            <textarea
-                id="document-edit--content"
-                onChange={evt => doc_store.setDocumentVersionContent(evt.target.value)}
+            <MarkdownEditor
                 value={document_version.content}
-            ></textarea>
+                onChange={value => doc_store.setDocumentVersionContent(value)}
+                transform={value => transformMarkdown(value, document_version.attachments)}
+            />
         </div>
         <div>
             <button
-                onClick={doc_store.setPrimaryVersion}
+                onClick={() =>
+                    confirmModal(`Are you sure you want to publish version ${document_version.version_number}: ${document_version.revision}?`)
+                    .then(() => doc_store.setPrimaryVersion())
+                }
                 disabled={document.id === null || document_version.id === null || document.primary_document_version_id === document_version.id}
             >Publish</button>
 
             <button
-                onClick={doc_store.removePrimaryVersion}
+                onClick={() =>
+                    confirmModal(`Are you sure you want to revoke ${document_version.version_number}: ${document_version.revision}?`)
+                    .then(() => doc_store.removePrimaryVersion())
+                }
                 disabled={document.id === null || document.primary_document_version_id === null}
             >Revoke</button>
 
             <button
-                onClick={doc_store.removeVersion} disabled={document_version.id === null}
+                onClick={() =>
+                    confirmModal(`Are you sure you want to remove version ${document_version.version_number}: ${document_version.revision}?`)
+                    .then(() => doc_store.removeVersion())
+                }
+                disabled={document_version.id === null}
             >Remove Version</button>
 
             <button
-                onClick={removeDocument} disabled={document.id === null}
+                onClick={() =>
+                    confirmModal(`Are you sure you want to remove document ${document.name}?`)
+                    .then(() => removeDocument())
+                }
+                disabled={document.id === null}
             >Remove Document</button>
 
         </div>
@@ -196,6 +214,38 @@ export default function() {
             </ul>
         </div>
     </div>;
+}
+
+const MarkdownEditor = (props: {value: string, onChange: (value: string) => void, transform?: ((value: string) => string)}) => {
+    const [show, setShow] = React.useState(false);
+
+    if (show) {
+        return <div>
+            <button onClick={() => setShow(false)}>Hide</button>
+            <Markdown>{props.transform === undefined ? props.value : props.transform(props.value)}</Markdown>
+        </div>
+    }
+
+    return <div style={{maxWidth: "600px", height: "300px", overflow: "auto"}}>
+        <button onClick={() => setShow(true)}>Show</button>
+        <CodeEditor
+            id="document-edit--content"
+            value={props.value}
+            language="markdown"
+            placeholder="No content entered..."
+            onChange={evt => props.onChange(evt.target.value)}
+            padding={15}
+            rehypePlugins={[
+                [rehypePrism, { ignoreMissing: true, showLineNumbers: true }]
+            ]}
+            style={{
+            fontSize: 12,
+            backgroundColor: "#f5f5f5",
+            fontFamily:
+                "ui-monospace,SFMono-Regular,SF Mono,Consolas,Liberation Mono,Menlo,monospace"
+            }}
+        />
+    </div>
 }
 
 const UploadAttachment = () => {
@@ -235,10 +285,13 @@ const AttachmentItem = (props: {attachment: Attachment}) => {
     React.useEffect(() => {
         const listener = (evt: MouseEvent) => {
             if (
-                evt.target !== null
+                evt.currentTarget !== null
                 && elem_ref.current !== null
-                && evt.target.hasOwnProperty("contains")
-                && (evt.target as HTMLElement).contains(elem_ref.current) && !do_edit
+                && "contains" in evt.currentTarget
+                && (evt.currentTarget as HTMLElement).contains(elem_ref.current)
+                && !elem_ref.current.contains((evt.target as HTMLElement))
+                && elem_ref.current !== evt.target
+                && do_edit
             ) {
                 setDoEdit(false)
             }
@@ -264,20 +317,27 @@ const AttachmentItem = (props: {attachment: Attachment}) => {
         }
     }
 
-    if (do_edit) {
         return <span ref={elem_ref}>
-            <input
-                value={props.attachment.name}
-                onChange={evt => doc_store.updateAttachmentName(props.attachment.name, evt.currentTarget.value)}
-            ></input>
-            <button onClick={updateAttachmentContent}>+</button>
+            <span style={{display: do_edit ? "inline" : "none"}}>
+                <input
+                    value={props.attachment.name}
+                    onChange={evt => doc_store.updateAttachmentName(props.attachment.name, evt.currentTarget.value)}
+                ></input>
+                <button onClick={updateAttachmentContent}>+</button>
+            </span>
+            <span style={{display: !do_edit ? "inline" : "none"}}>
+                {["jpg", "png"].indexOf(props.attachment.type) >= 0 && <img src={props.attachment.path}></img>}
+                <span onClick={() => setDoEdit(true)}>{props.attachment.name}</span>
+                <button onClick={() =>
+                    confirmModal(`Are you sure you want to remove attachment ${props.attachment.name}?`)
+                    .then(() => doc_store.removeAttachment(props.attachment.name))
+                }>X</button>
+            </span>
         </span>
     }
 
     return <span>
-        {["jpg", "png"].indexOf(props.attachment.type) >= 0 && <img src={props.attachment.path}></img>}
-        <span onClick={() => setDoEdit(true)}>{props.attachment.name}</span>
-        <button onClick={() => doc_store.removeAttachment(props.attachment.name)}>X</button>
+        
     </span>
 }
 
@@ -298,4 +358,14 @@ const uploadFile = () => {
     
     upload_elem.click();
     return promise;
+}
+
+const transformMarkdown = (source: string, attachments: Attachment[]) => {
+    return source.replace(/\!\[(.*)\]\((.+)\)/, (match, p1, p2) => {
+        const matched_attachment = attachments.find(attachment => attachment.name === p2);
+        const url = matched_attachment === undefined
+            ? p2
+            : matched_attachment.path;
+        return `![${p1}](${url})`;
+    })
 }

@@ -1,13 +1,45 @@
 
 @import "~normalize.css/normalize.css";
+@import "~@uiw/react-textarea-code-editor/dist.css";
 
 $fa-font-path: "~@fortawesome/fontawesome-free/webfonts";
 @import "~@fortawesome/fontawesome-free/scss/fontawesome";
 @import "~@fortawesome/fontawesome-free/scss/solid";
+
+@import "components/modal.scss";
 
 html, body, .root {
     width: 100%;
     height: 100%;
     margin: 0;
     padding: 0;
+}
+
+/**
+* Fix for line numbers on react-textarea-code-editor: the padding on the textarea is set manually
+* on the element itself with no clean way to override it
+*/
+.w-tc-editor {
+    textarea {
+        padding-left: calc(15px + 16px) !important;
+    }
+
+    .w-tc-editor-preview {
+        padding-left: calc(15px + 16px) !important
+    }
+}
+
+pre {
+  overflow-x: auto;
+}
+
+.line-number::before {
+    display: block;
+    position: absolute;
+    width: 1rem;
+    text-align: right;
+    margin-right: 16px;
+    margin-left: calc(-8px - 15px);
+    color: rgb(156, 163, 175); /* Line number color */
+    content: attr(line);
 }

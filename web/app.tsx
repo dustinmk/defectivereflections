@@ -10,6 +10,7 @@ import ContactPage from "web/pages/contact";
 import Admin from "web/pages/admin";
 import Documents from "web/pages/documents";
 import DocumentsEdit from "./pages/documents-edit";
+import { Modal } from "./components/modal";
 
 const router = createBrowserRouter([
     {
@@ -30,8 +31,10 @@ const router = createBrowserRouter([
 ])
 
 export default function() {
-    return (
+    return (<>
+        <Modal></Modal>
         <RouterProvider router={router} />
+        </>
     );
 }
 

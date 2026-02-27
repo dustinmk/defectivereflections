@@ -63,7 +63,10 @@
     "webpack-dev-server": "^4.15.1"
   },
   "devDependencies": {
+    "@uiw/react-textarea-code-editor": "^3.1.1",
     "immer": "^11.1.4",
+    "react-markdown": "^10.1.0",
+    "rehype-prism-plus": "^2.0.2",
     "uuid": "^13.0.0",
     "zustand": "^5.0.11"
   }
