@@ -33,14 +33,14 @@ export const document_api = {
     add_attachment: async (document_path: string, version_number: number, name: string, content_path: string) => {
         return (await put(`document/${document_path}/${version_number}/attachment/${name}`, {content_path})).attachments as Attachment[]
     },
-    update_attachment_content: async (document_path: string, version_number: number, attachment_name: string, content_path: string) => {
-        return (await put(`document/${document_path}/${version_number}/attachment/${attachment_name}`, {content_path})).attachments as Attachment[]
+    update_attachment_content: async (document_path: string, version_number: number, attachment_id: number, content_path: string) => {
+        return (await put(`document/${document_path}/${version_number}/attachment/${attachment_id}`, {content_path})).attachments as Attachment[]
     },
-    update_attachment_name: async (document_path: string, version_number: number, attachment_name: string, name: string) => {
-        return (await put(`document/${document_path}/${version_number}/attachment/${attachment_name}`, {name})).attachments as Attachment[]
+    update_attachment_name: async (document_path: string, version_number: number, attachment_id: number, name: string) => {
+        return (await put(`document/${document_path}/${version_number}/attachment/${attachment_id}`, {name})).attachments as Attachment[]
     },
-    remove_attachment: async (document_path: string, version_number: number, attachment_name: string) => {
-        return (await del(`document/${document_path}/${version_number}/attachment/${attachment_name}`)).attachments as Attachment[]
+    remove_attachment: async (document_path: string, version_number: number, attachment_id: number) => {
+        return (await del(`document/${document_path}/${version_number}/attachment/${attachment_id}`)).attachments as Attachment[]
     },
     upload_file: async (file: File) => {
         const slice_size = 1024 * 1024;

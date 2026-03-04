@@ -8,16 +8,18 @@
             "name": "Launch Chrome",
             "request": "launch",
             "type": "chrome",
-            "url": "http://localhost:8000",
+            "url": "http://localhost:8000/admin",
             "webRoot": "${workspaceFolder}"
         },
         {
-            "args": [
+            "runtimeArgs": [
                 "-r", "ts-node/register",
                 "-r", "tsconfig-paths/register",
+            ],
+            "args": [
                 "${workspaceFolder}/server/index.ts"
             ],
-            "internalConsoleOptions": "openOnSessionStart",
+            "console": "integratedTerminal",
             "name": "ExpressJS",
             "request": "launch",
             "skipFiles": [
@@ -28,7 +30,7 @@
             "env": {
                 "NODE_ENV": "development"
             },
-            "smartStep": true,
+            //"smartStep": true,
             "cwd": "${workspaceFolder}/dist/server"
         },
     ]

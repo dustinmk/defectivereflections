@@ -1,6 +1,8 @@
 
 @import "~normalize.css/normalize.css";
 @import "~@uiw/react-textarea-code-editor/dist.css";
+@import "~katex/dist/katex.min.css";
+@import "~highlight.js/scss/github.scss";
 
 $fa-font-path: "~@fortawesome/fontawesome-free/webfonts";
 @import "~@fortawesome/fontawesome-free/scss/fontawesome";
@@ -15,6 +17,114 @@ html, body, .root {
     padding: 0;
 }
 
+p, span, li, div, button, input, a, img {
+    font-family: sans-serif;
+}
+
+.form {
+    & > div {
+        margin-bottom: 0.5rem;
+    }
+}
+
+.button-row {
+    display: flex;
+    justify-content: space-evenly;
+    gap: 0.5rem;
+
+    & > * {
+        flex-grow: 1;
+    }
+}
+
+@mixin menu-item() {
+    li {
+        padding: 0.25rem 0;
+        cursor: pointer;
+        
+        a {
+            color: black;
+            text-decoration: none;
+
+            &:visited {
+                color: black;
+                text-decoration: none;
+            }
+        }
+
+        &:hover {
+            background-color: #D0D0D0;
+        }
+    }
+}
+
+.menu-toolbar {
+    list-style: none;
+    margin: 0;
+    padding: 0.5rem;
+    display: flex;
+    box-shadow: 2px 2px 4px #808080;
+
+    @include menu-item();
+}
+
+.menu-vertical {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    @include menu-item();
+}
+
+.admin-section {
+    padding: 0.5rem;
+    display: flex;
+}
+
+.admin-content {
+    margin: 0 auto;
+    width: 40rem;
+    position: relative;
+}
+
+.admin-sidebar {
+    & > div {
+        margin-bottom: 1rem;
+
+        label {
+            font-weight: 600;
+        }
+    }
+}
+
+.labelled-field {
+    label {
+        width: 8rem;
+        display: inline-block;
+    }
+}
+
+.markdown-editor {
+    max-width: 40rem;
+    max-height: 20rem;
+    overflow: auto;
+
+    button {
+        position: absolute;
+        right: 0;
+        z-index: 10;
+        opacity: 0.8;
+    }
+
+    img {
+        max-width: 100%;
+    }
+}
+
+.thumbnail {
+    max-height: 2rem;
+}
+
 /**
 * Fix for line numbers on react-textarea-code-editor: the padding on the textarea is set manually
 * on the element itself with no clean way to override it
@@ -26,6 +136,18 @@ html, body, .root {
 
     .w-tc-editor-preview {
         padding-left: calc(15px + 16px) !important
+    }
+
+    span {
+        font-family: monospace;
+    }
+}
+
+.hljs {
+    background-color: #F4F4F4;
+    & * {
+        font-family: monospace;
+        font-size: 1rem;
     }
 }
 

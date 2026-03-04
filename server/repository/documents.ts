@@ -211,6 +211,28 @@ const createDocumentVersionTrx = async (trx: Knex.Transaction<any, any[]>, docum
         status_id: document_version.status_id
     }, ["id"]).into("document_version");
 
+    // Copy existing attachments on latest version
+    if (existing_top_version !== undefined) {
+        const prior_attachments = await trx
+            .select("attachment.*")
+            .from<Attachment>("attachment")
+            .join("document_version", "document_version.id", "attachment.document_version_id")
+            .where("document_version.version_number", existing_top_version) as Attachment[];
+
+        const new_attachments = prior_attachments.map(result => ({
+            name: result.name,
+            path: result.path,
+            type: result.type,
+            content: result.content,
+            created: result.created,
+            edited: result.edited,
+            document_id: document_version.document_id,
+            document_version_id: document_version_id[0].id
+        }));
+
+        await trx.batchInsert("attachment", new_attachments);
+    }
+
     return document_version_id[0].id;
 }
 
@@ -382,7 +404,7 @@ const validateUploadPath = async (filepath: string) => {
 export async function saveAttachment(
     document_path: string,
     version_number: number,
-    attachment_name: string,
+    attachment_id: number,
     new_name: string | undefined,
     content_path: string | undefined
 ) {
@@ -393,10 +415,6 @@ export async function saveAttachment(
     if (content_path !== undefined) {
         await validateUploadPath(content_path);
     }
-
-    const save_name = new_name === undefined ? attachment_name : new_name.toLocaleLowerCase();
-    const split_name = save_name.split(".");
-    const attachment_type = split_name[split_name.length - 1];
 
     return await db.transaction(async trx => {
         const existing_document_result = await trx
@@ -411,13 +429,21 @@ export async function saveAttachment(
             throw new Error("Invalid document version");
         }
 
-        const existing_attachment_result = await trx
+        const existing_attachment_result: Attachment = await trx
             .select()
             .from<Attachment>("attachment")
-            .where("attachment.name", attachment_name)
+            .where("attachment.id", attachment_id)
             .where("attachment.document_id", existing_document_result.document_id)
             .where("attachment.document_version_id", existing_document_result.document_version_id)
             .first();
+
+        if (existing_attachment_result === undefined && new_name === undefined) {
+            throw new Error("No name for attachment defined");
+        }
+
+        const save_name = new_name === undefined ? existing_attachment_result.name : new_name.toLocaleLowerCase();
+        const split_name = save_name.split(".");
+        const attachment_type = split_name[split_name.length - 1];
 
         let save_file: string | null = null;
         if (content_path !== undefined) {
@@ -426,7 +452,7 @@ export async function saveAttachment(
             const original_file = path.resolve(process.cwd(), "upload", `${content_path}`);
 
             await fsPromises.mkdir(abs_save_folder, {recursive: true});
-            const filename = `${document_path}_${version_number}_${attachment_name}_${randomUUID()}.${attachment_type}`;
+            const filename = `${document_path}_${version_number}_${save_name}_${randomUUID()}.${attachment_type}`;
             save_file = `${rel_save_folder}/${filename}`;
 
             const abs_file = `${abs_save_folder}/${filename}`;
@@ -466,7 +492,7 @@ export async function saveAttachment(
         } else {
             await trx("attachment")
                 .insert({
-                    "name": attachment_name,
+                    "name": save_name,
                     "path": save_file,
                     "type": attachment_type,
                     "content": null,
@@ -482,7 +508,7 @@ export async function saveAttachment(
     // Also be able add attachments from prior versions
 }
 
-export async function copyAttachments(document_path: string, version_number: number, prior_version: number, attachment_names: string[]) {
+export async function copyAttachments(document_path: string, version_number: number, prior_version: number, attachment_ids: number[]) {
     return await db.transaction(async trx => {
         const prior_document_result = await trx
             .select("document.id as document_id", "document_version.id as document_version_id")
@@ -503,7 +529,7 @@ export async function copyAttachments(document_path: string, version_number: num
         const prior_attachment_result = await trx
             .select()
             .from<Attachment>("attachment")
-            .whereIn("attachment.name", attachment_names)
+            .whereIn("attachment.id", attachment_ids)
             .where("attachment.document_id", prior_document_result.document_id)
             .where("attachment.document_version_id", prior_document_result.document_version_id);
         
@@ -526,7 +552,7 @@ export async function copyAttachments(document_path: string, version_number: num
     });
 }
 
-export async function removeAttachment(document_path: string, version_number: number, attachment_name: string) {
+export async function removeAttachment(document_path: string, version_number: number, attachment_id: number) {
     // Scan for attachment path. If no other version holds the attachment, delete it from disk, otherwise just remove the row
     return await db.transaction(async trx => {
         const document_result = await trx
@@ -542,7 +568,7 @@ export async function removeAttachment(document_path: string, version_number: nu
             .from<Attachment>("attachment")
             .where("document_id", document_result.document_id)
             .where("document_version_id", document_result.document_version_id)
-            .where("name", attachment_name)
+            .where("id", attachment_id)
             .first();
 
         if (existing_attachment === undefined) {

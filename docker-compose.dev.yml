@@ -19,9 +19,7 @@ services:
         reservations:
           memory: 128M
   redis:
-    image: redis:7
-    expose:
-      - "6379/tcp"
+    image: redis:8
     ports:
       - "6379:6379"
     deploy:

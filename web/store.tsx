@@ -1,6 +1,6 @@
 import React, { useContext } from "react";
 import { createContext } from "react"
-import { Document, EMPTY_DOCUMENT, EMPTY_DOCUMENT_VERSION, Status } from "common/model"
+import { Document, EMPTY_DOCUMENT, EMPTY_DOCUMENT_VERSION, Section, Status } from "common/model"
 import {create} from "zustand";
 import {combine} from "zustand/middleware";
 import { document_api } from "./api/document_api";
@@ -8,14 +8,15 @@ import { produce } from "immer";
 import { meta_api } from "./api/meta_api";
 import { removeAttachment } from "server/repository/documents";
 
-
-
-export const useDocuments = create(combine({
+const init_state = {
     documents: [] as Document[],
     status_list: new Map<number, Status>(),
+    section_list: new Map<number, Section>(),
     document: EMPTY_DOCUMENT,
     document_version: EMPTY_DOCUMENT_VERSION
-}, (set, get) => ({
+};
+
+export const useDocuments = create(combine(init_state, (set, get) => ({
     setDocumentName: (name: string) => set(produce(state => {state.document.name = name})),
     setDocumentPath: (path: string) => set(produce(state => {state.document.path = path})),
     setDocumentVersionStatus: (status_id: number) => set(produce(state => {state.document_version.status_id = isNaN(status_id) ? 0 : status_id})),
@@ -117,31 +118,39 @@ export const useDocuments = create(combine({
             }));
         }
     },
-    updateAttachmentContent: async (attachment_name: string, tmp_file_path: string) => {
+    updateAttachmentContent: async (attachment_id: number, tmp_file_path: string) => {
         const {document, document_version} = get();
 
         if (document.path !== null && document_version.version_number !== null) {
-            const result = await document_api.update_attachment_content(document.path, document_version.version_number, attachment_name, tmp_file_path);
+            const result = await document_api.update_attachment_content(document.path, document_version.version_number, attachment_id, tmp_file_path);
             set(produce(state => {
                 state.document_version.attachments = result
             }));
         }
     },
-    updateAttachmentName: async (attachment_name: string, name: string) => {
+    saveAttachmentName: async (attachment_id: number, name: string) => {
         const {document, document_version} = get();
 
         if (document.path !== null && document_version.version_number !== null) {
-            const result = await document_api.update_attachment_name(document.path, document_version.version_number, attachment_name, name)
+            const result = await document_api.update_attachment_name(document.path, document_version.version_number, attachment_id, name)
             set(produce(state => {
                 state.document_version.attachments = result
             }));
         }
     },
-    removeAttachment: async (attachment_name: string) => {
+    updateAttachmentName: async (attachment_id: number, name: string) => {
+        set(produce((state: typeof init_state) => {
+            const attachment = state.document_version.attachments.find(attachment => attachment.id === attachment_id);
+            if (attachment !== undefined) {
+                attachment.name = name;
+            }
+        }));
+    },
+    removeAttachment: async (attachment_id: number) => {
         const {document, document_version} = get();
 
         if (document.path !== null && document_version.version_number !== null) {
-            const result = await document_api.remove_attachment(document.path, document_version.version_number, attachment_name)
+            const result = await document_api.remove_attachment(document.path, document_version.version_number, attachment_id)
             set(produce(state => {
                 state.document_version.attachments = result;
             }));

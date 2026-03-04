@@ -1,4 +1,5 @@
 import React from "react";
+import { MathJaxContext } from "better-react-mathjax";
 import {
     createBrowserRouter,
     RouterProvider
@@ -31,10 +32,9 @@ const router = createBrowserRouter([
 ])
 
 export default function() {
-    return (<>
+    return <MathJaxContext>
         <Modal></Modal>
         <RouterProvider router={router} />
-        </>
-    );
+    </MathJaxContext>;
 }
 

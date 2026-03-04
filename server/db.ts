@@ -7,7 +7,7 @@ declare module 'knex/types/result' {
   }
 }
 
-const knexfile_path = path.resolve(process.cwd(), "../knexfile.js");
+const knexfile_path = path.resolve(process.cwd(), "./knexfile.js");
 const conn = knex(require(`${knexfile_path}`));
 
 export default conn;

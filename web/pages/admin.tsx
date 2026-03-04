@@ -4,8 +4,8 @@ import { NavLink } from "react-router-dom";
 import { Link } from "react-router-dom";
 
 export default function() {
-    return <div>
-        <ul>
+    return <div className="admin">
+        <ul className="menu-toolbar">
             <li><NavLink to="/admin/documents">Documents</NavLink></li>
         </ul>
         <Outlet />

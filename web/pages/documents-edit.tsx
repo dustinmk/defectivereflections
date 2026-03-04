@@ -1,14 +1,13 @@
-import { Document, DocumentVersion, Attachment, EMPTY_DOCUMENT_VERSION, Status, EMPTY_DOCUMENT } from "common/model";
+import { Attachment } from "common/model";
 import React from "react";
-import {produce} from "immer";
-import { NavLink, useNavigate, useParams } from "react-router-dom";
+import RemarkMathPlugin from "remark-math";
+import RehypeKatexPlugin from 'rehype-katex'
+import RehypeMathJaxPlugin from "rehype-mathjax";
+import RehypeHighlightPlugin from "rehype-highlight";
+import { useNavigate, useParams } from "react-router-dom";
 import { document_api } from "web/api/document_api";
-import { meta_api } from "web/api/meta_api";
-import { formatDateTime, formatInputDate } from "web/util";
-import { useStatusStore } from "web/api/data_store";
+import { formatInputDate } from "web/util";
 import { useDocuments } from "web/store";
-import { create } from "zustand";
-import { combine } from "zustand/middleware";
 import rehypePrism from "rehype-prism-plus";
 import CodeEditor from "@uiw/react-textarea-code-editor";
 import Markdown from "react-markdown";
@@ -75,101 +74,10 @@ export default function() {
         }
     }
 
-    return <div>
-        <div>
+    return <div className="admin-content content form">
+        <div className="button-row">
             <button onClick={save}>Save</button>
-        </div>
-        <div>
-            <label htmlFor="document-edit--name">Name</label>
-            <input 
-                type="text"
-                id="document-edit--name"
-                onChange={evt => doc_store.setDocumentName(evt.target.value)}
-                value={document.name}
-            ></input>
-        </div>
-        <div>
-            <label htmlFor="document-edit--created">Created</label>
-            <input
-                type="datetime-local"
-                id="document-edit--created"
-                value={formatInputDate(document.created)}
-                disabled
-            >
-            </input>
-        </div>
-        <div>
-            <label htmlFor="document-edit--created">Edited</label>
-            <input
-                type="datetime-local"
-                id="document-edit--edited"
-                value={formatInputDate(document.edited)}
-                disabled
-            >
-            </input>
-        </div>
-        <div>
-            <label htmlFor="document-edit--path">Path</label>
-            <input 
-                type="text"
-                id="document-edit--path"
-                onChange={evt => doc_store.setDocumentPath(evt.target.value)}
-                value={document.path}
-            ></input>
-        </div>
-        <div>
-            <label htmlFor="document-edit--versions">Version</label>
-            <ul id="document-edit--versions">
-                <li>
-                    <a onClick={() => doc_store.setVersion(null)}>
-                        [New document version]
-                    </a>
-                </li>
-                {document.versions.map(version => {
-                    return <li>
-                        <a onClick={() => doc_store.setVersion(version.version_number)}>
-                            {version.id === document.primary_document_version_id && "Published"} {version.id}: {version.revision} ({formatDateTime(version.edited)})
-                        </a>
-                    </li>
-                })}
-            </ul>
-        </div>
-        <div>
-            <label htmlFor="document-edit--status">Status</label>
-            <select
-                id="document-edit--status"
-                onChange={evt => doc_store.setDocumentVersionStatus(parseInt(evt.target.value))}
-                value={resolveStatusName(document_version.status_id)}
-            >
-                {[...status_list.values()].map(status => <option value={status.name}>{status.display_name}</option>)}
-            </select>
-        </div>
-        <div>
-            <label htmlFor="document-edit--revision">Revision</label>
-            <input 
-                type="text"
-                id="document-edit--revision"
-                onChange={evt => doc_store.setDocumentVersionRevision(evt.target.value)}
-                value={document_version.revision}
-            ></input>
-        </div>
-        <div>
-            <label htmlFor="document-edit--comments">Comments</label>
-            <MarkdownEditor
-                value={document_version.comments}
-                onChange={value => doc_store.setDocumentVersionComments(value)}
-                transform={value => transformMarkdown(value, document_version.attachments)}
-            />
-        </div>
-        <div>
-            <label htmlFor="document-edit--content">Content</label>
-            <MarkdownEditor
-                value={document_version.content}
-                onChange={value => doc_store.setDocumentVersionContent(value)}
-                transform={value => transformMarkdown(value, document_version.attachments)}
-            />
-        </div>
-        <div>
+
             <button
                 onClick={() =>
                     confirmModal(`Are you sure you want to publish version ${document_version.version_number}: ${document_version.revision}?`)
@@ -203,8 +111,82 @@ export default function() {
             >Remove Document</button>
 
         </div>
+        <div className="labelled-field">
+            <label htmlFor="document-edit--name">Name</label>
+            <input 
+                type="text"
+                id="document-edit--name"
+                onChange={evt => doc_store.setDocumentName(evt.target.value)}
+                value={document.name}
+            ></input>
+        </div>
+        <div className="labelled-field">
+            <label htmlFor="document-edit--created">Created</label>
+            <input
+                type="datetime-local"
+                id="document-edit--created"
+                value={formatInputDate(document.created)}
+                disabled
+            >
+            </input>
+        </div>
+        <div className="labelled-field">
+            <label htmlFor="document-edit--created">Edited</label>
+            <input
+                type="datetime-local"
+                id="document-edit--edited"
+                value={formatInputDate(document.edited)}
+                disabled
+            >
+            </input>
+        </div>
+        <div className="labelled-field">
+            <label htmlFor="document-edit--path">Path</label>
+            <input 
+                type="text"
+                id="document-edit--path"
+                onChange={evt => doc_store.setDocumentPath(evt.target.value)}
+                value={document.path}
+            ></input>
+        </div>
+        
+        <div className="labelled-field">
+            <label htmlFor="document-edit--status">Status</label>
+            <select
+                id="document-edit--status"
+                onChange={evt => doc_store.setDocumentVersionStatus(parseInt(evt.target.value))}
+                value={document_version.status_id || -1}
+            >
+                {[...status_list.values()].map(status => <option value={status.id}>{status.display_name}</option>)}
+            </select>
+        </div>
+        <div className="labelled-field">
+            <label htmlFor="document-edit--revision">Revision</label>
+            <input 
+                type="text"
+                id="document-edit--revision"
+                onChange={evt => doc_store.setDocumentVersionRevision(evt.target.value)}
+                value={document_version.revision}
+            ></input>
+        </div>
         <div>
-            <ul>
+            <label htmlFor="document-edit--comments">Comments</label>
+            <MarkdownEditor
+                value={document_version.comments}
+                onChange={value => doc_store.setDocumentVersionComments(value)}
+                transform={value => transformMarkdown(value, document_version.attachments)}
+            />
+        </div>
+        <div>
+            <label htmlFor="document-edit--content">Content</label>
+            <MarkdownEditor
+                value={document_version.content}
+                onChange={value => doc_store.setDocumentVersionContent(value)}
+                transform={value => transformMarkdown(value, document_version.attachments)}
+            />
+        </div>
+        <div>
+            <ul className="menu-vertical">
                 <li><UploadAttachment /></li>
                 {document_version.attachments.map(attachment => {
                     return <li>
@@ -220,13 +202,19 @@ const MarkdownEditor = (props: {value: string, onChange: (value: string) => void
     const [show, setShow] = React.useState(false);
 
     if (show) {
-        return <div>
+        return <div className="markdown-editor">
             <button onClick={() => setShow(false)}>Hide</button>
-            <Markdown>{props.transform === undefined ? props.value : props.transform(props.value)}</Markdown>
+            <div>
+                <Markdown
+                    remarkPlugins={[RemarkMathPlugin]}
+                    rehypePlugins={[RehypeMathJaxPlugin, RehypeHighlightPlugin]}
+                >{props.transform === undefined ? props.value : props.transform(props.value)}
+                </Markdown>
+            </div>
         </div>
     }
 
-    return <div style={{maxWidth: "600px", height: "300px", overflow: "auto"}}>
+    return <div className="markdown-editor">
         <button onClick={() => setShow(true)}>Show</button>
         <CodeEditor
             id="document-edit--content"
@@ -313,31 +301,28 @@ const AttachmentItem = (props: {attachment: Attachment}) => {
         const file = await uploadFile();
         if (file !== null) {
             const tmp_path = await document_api.upload_file(file);
-            doc_store.updateAttachmentContent(props.attachment.name, tmp_path)
+            doc_store.updateAttachmentContent(props.attachment.id || -1, tmp_path)
         }
     }
 
-        return <span ref={elem_ref}>
-            <span style={{display: do_edit ? "inline" : "none"}}>
-                <input
-                    value={props.attachment.name}
-                    onChange={evt => doc_store.updateAttachmentName(props.attachment.name, evt.currentTarget.value)}
-                ></input>
-                <button onClick={updateAttachmentContent}>+</button>
-            </span>
-            <span style={{display: !do_edit ? "inline" : "none"}}>
-                {["jpg", "png"].indexOf(props.attachment.type) >= 0 && <img src={props.attachment.path}></img>}
-                <span onClick={() => setDoEdit(true)}>{props.attachment.name}</span>
-                <button onClick={() =>
-                    confirmModal(`Are you sure you want to remove attachment ${props.attachment.name}?`)
-                    .then(() => doc_store.removeAttachment(props.attachment.name))
-                }>X</button>
-            </span>
+    return <span ref={elem_ref}>
+        <span style={{display: do_edit ? "inline" : "none"}}>
+            {["jpg", "png"].indexOf(props.attachment.type) >= 0 && <img className="thumbnail" src={props.attachment.path}></img>}
+            <input
+                value={props.attachment.name}
+                onChange={evt => doc_store.updateAttachmentName(props.attachment.id || -1, evt.currentTarget.value)}
+                onBlur={evt => doc_store.saveAttachmentName(props.attachment.id || -1, evt.currentTarget.value)}
+            ></input>
+            <button onClick={updateAttachmentContent}>+</button>
         </span>
-    }
-
-    return <span>
-        
+        <span style={{display: !do_edit ? "inline" : "none"}}>
+            {["jpg", "png"].indexOf(props.attachment.type) >= 0 && <img className="thumbnail" src={props.attachment.path}></img>}
+            <span onClick={() => setDoEdit(true)}>{props.attachment.name}</span>
+            <button onClick={() =>
+                confirmModal(`Are you sure you want to remove attachment ${props.attachment.name}?`)
+                .then(() => doc_store.removeAttachment(props.attachment.id || -1))
+            }>X</button>
+        </span>
     </span>
 }
 
@@ -361,7 +346,7 @@ const uploadFile = () => {
 }
 
 const transformMarkdown = (source: string, attachments: Attachment[]) => {
-    return source.replace(/\!\[(.*)\]\((.+)\)/, (match, p1, p2) => {
+    return source.replace(/\!\[(.*)\]\((.+)\)/g, (match, p1, p2) => {
         const matched_attachment = attachments.find(attachment => attachment.name === p2);
         const url = matched_attachment === undefined
             ? p2

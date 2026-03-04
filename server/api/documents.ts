@@ -2,11 +2,15 @@ import { Document, DocumentVersion, Status } from "common/model";
 import { validate } from "jsonschema"
 import app from "server/app";
 import db from "server/db";
-import { copyAttachments, createDocument, createDocumentVersion, fetchDocument, fetchDocumentById, fetchDocumentVersion, fetchDocumentVersionById, listAttachments, listDocuments, listStatus, removeAttachment, removeDocument, removeDocumentVersion, removePrimaryDocumentVersion, saveAttachment, setPrimaryDocumentVersion, updateDocument, updateDocumentVersion, uploadFile } from "server/repository/documents";
+import { copyAttachments, createDocument, createDocumentVersion, fetchDocument, fetchDocumentById, fetchDocumentVersion, fetchDocumentVersionById, listAttachments, listDocuments, listSections, listStatus, removeAttachment, removeDocument, removeDocumentVersion, removePrimaryDocumentVersion, saveAttachment, setPrimaryDocumentVersion, updateDocument, updateDocumentVersion, uploadFile } from "server/repository/documents";
 // import { createAdminUser, getUserCount, validateUser } from "server/repository/users";
 
 app.get("/api/status", async (req, res) => {
     return res.json({status: await listStatus()});
+});
+
+app.get("/api/section", async (req, res) => {
+    return res.json({status: await listSections()});
 });
 
 app.get("/api/document", async (req, res) => {
@@ -120,7 +124,7 @@ app.post("/api/upload/:path", async (req, res) => {
     });
 });
 
-app.put("/api/document/:path/:version/attachment/:attachment_name", async (req, res) => {
+app.put("/api/document/:path/:version/attachment/:attachment_id", async (req, res) => {
     const data = req.body as {name: string, content_path: string | undefined};
 
     const version = parseInt(req.params.version);
@@ -128,7 +132,12 @@ app.put("/api/document/:path/:version/attachment/:attachment_name", async (req, 
         return res.status(400).json({error: "Invalid document version"});
     }
 
-    await saveAttachment(req.params.path, version, req.params.attachment_name, data.name, data.content_path);
+    const attachment_id = parseInt(req.params.attachment_id);
+    if (isNaN(attachment_id)) {
+        return res.status(400).json({error: "Invalid attachment id"});
+    }
+
+    await saveAttachment(req.params.path, version, attachment_id, data.name, data.content_path);
 
     return res.json({
         attachments: await listAttachments(req.params.path, version)
@@ -136,27 +145,32 @@ app.put("/api/document/:path/:version/attachment/:attachment_name", async (req, 
 });
 
 app.post("/api/document/:path/:version/attachment", async (req, res) => {
-    const data = req.body as {attachments: string[], previous_version: number};
+    const data = req.body as {attachment_ids: number[], prior_version: number};
 
     const version = parseInt(req.params.version);
     if (isNaN(version)) {
         return res.status(400).json({error: "Invalid document version"});
     }
 
-    await copyAttachments(req.params.path, version, data.previous_version, data.attachments);
+    await copyAttachments(req.params.path, version, data.prior_version, data.attachment_ids);
 
     return res.json({
         attachments: await listAttachments(req.params.path, version)
     });
 });
 
-app.delete("/api/document/:path/:version/attachment/:attachment_name", async (req, res) => {
+app.delete("/api/document/:path/:version/attachment/:attachment_id", async (req, res) => {
     const version = parseInt(req.params.version);
     if (isNaN(version)) {
         return res.status(400).json({error: "Invalid document version"});
     }
 
-    await removeAttachment(req.params.path, version, req.params.attachment_name);
+    const attachment_id = parseInt(req.params.attachment_id);
+    if (isNaN(attachment_id)) {
+        return res.status(400).json({error: "Invalid attachment id"});
+    }
+
+    await removeAttachment(req.params.path, version, attachment_id);
 
     const attachments = await listAttachments(req.params.path, version);
 
