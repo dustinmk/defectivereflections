@@ -15,7 +15,7 @@ declare module "express-session" {
   
 const app = express();
 
-app.use(express.static(path.resolve(process.cwd(), "../web")));
+app.use(express.static(path.resolve(process.cwd(), "./web")));
 app.use(express.json({ limit: "4mb" }));
 app.set("trust proxy", 1);
 

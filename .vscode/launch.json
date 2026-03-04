@@ -5,33 +5,54 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Chrome",
+            "name": "ExpressJS",
+            "type": "node",
             "request": "launch",
-            "type": "chrome",
-            "url": "http://localhost:8000/admin",
-            "webRoot": "${workspaceFolder}"
+            "program": "${workspaceFolder}/dist/server/server/index.js",
+            "cwd": "${workspaceFolder}/dist",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "outFiles": [
+                "${workspaceFolder}/dist/server/**/*.(m|c|)js",
+                "!**/node_modules/**"
+            ],
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "runtimeArgs": [
+                "-r", "tsconfig-paths/register"
+            ],
+            "preLaunchTask": "npm build"
         },
         {
-            "runtimeArgs": [
-                "-r", "ts-node/register",
-                "-r", "tsconfig-paths/register",
-            ],
-            "args": [
-                "${workspaceFolder}/server/index.ts"
-            ],
-            "console": "integratedTerminal",
-            "name": "ExpressJS",
+            "name": "Chrome",
             "request": "launch",
-            "skipFiles": [
-                "<node_internals>/**",
-                "${workspaceFolder}/node_modules/**/*"
-            ],
-            "type": "node",
-            "env": {
-                "NODE_ENV": "development"
-            },
-            //"smartStep": true,
-            "cwd": "${workspaceFolder}/dist/server"
+            "type": "chrome",
+            "url": "http://localhost:8000",
+            "webRoot": "${workspaceFolder}"
         },
+        // {
+        //     "runtimeArgs": [
+        //         "-r", "ts-node/register",
+        //         "-r", "tsconfig-paths/register"
+        //     ],
+        //     "args": [
+        //         "${workspaceFolder}/server/index.ts"
+        //     ],
+        //     "console": "internalConsole",
+        //     "name": "!!!! OLD ExpressJS",
+        //     "request": "launch",
+        //     "skipFiles": [
+        //         "<node_internals>/**",
+        //         "${workspaceFolder}/node_modules/**/*"
+        //     ],
+        //     "type": "node",
+        //     "env": {
+        //         "NODE_ENV": "development",
+        //         "TS_NODE_PROJECT": "${workspaceFolder}/tsconfig.json"
+        //     },
+        //     //"smartStep": true,
+        //     "cwd": "${workspaceFolder}"
+        // },
     ]
 }

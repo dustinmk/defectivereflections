@@ -17,49 +17,46 @@ const postcss_options = {
     }
 }
 
+const module_rules = [
+    {
+        test: /\.css$/i,
+        use: [
+            MiniCssExtractPlugin.loader,
+            "css-loader",
+            {
+                loader: "postcss-loader",
+                options: postcss_options
+            }
+        ]
+    },
+    {
+        test: /\.s[ac]ss$/i,
+        use: [
+            MiniCssExtractPlugin.loader,
+            "css-loader",
+            {
+                loader: "postcss-loader",
+                options: postcss_options
+            },
+            "sass-loader"
+        ]
+    },
+    {
+        test: /\.(woff(2)?|ttf|eot|svg)?$/,
+        type: "asset/resource",
+        generator: {
+            filename: "fonts/[hash][ext][query]"
+        }
+    }
+];
+
 const common_config = {
     mode: production
         ? "production"
         : "development",
     devtool: "inline-source-map",
     module: {
-        rules: [
-            {
-                test: /\.tsx?$/,
-                use: "ts-loader",
-                exclude: /node_modules/,
-            },
-            {
-                test: /\.css$/i,
-                use: [
-                    MiniCssExtractPlugin.loader,
-                    "css-loader",
-                    {
-                        loader: "postcss-loader",
-                        options: postcss_options
-                    }
-                ]
-            },
-            {
-                test: /\.s[ac]ss$/i,
-                use: [
-                    MiniCssExtractPlugin.loader,
-                    "css-loader",
-                    {
-                        loader: "postcss-loader",
-                        options: postcss_options
-                    },
-                    "sass-loader"
-                ]
-            },
-            {
-                test: /\.(woff(2)?|ttf|eot|svg)?$/,
-                type: "asset/resource",
-                generator: {
-                    filename: "fonts/[hash][ext][query]"
-                }
-            }
-        ]
+        rules: module_rules
     },
     resolve: {
         extensions: [".tsx", ".ts", ".js"],
@@ -89,6 +86,25 @@ const web_config = {...common_config, ...{
         publicPath: "/",
         filename: "index.[hash].js"
     },
+    module: {
+        rules: [...module_rules,
+            {
+                test: /\.tsx?$/,
+                use: {
+                    loader: "ts-loader",
+                    options: {
+                        compilerOptions: {
+                            target: "es6",
+                            module: "esnext",
+                            moduleResolution: "bundler",
+                        }
+                    }
+                },
+                exclude: /node_modules/,
+                
+            },
+        ]
+    },
     plugins: [...common_config.plugins, ...[
         new HtmlWebpackPlugin({
             templateContent: web_template,
@@ -107,6 +123,23 @@ const web_config = {...common_config, ...{
 const server_config = {...common_config, ...{
     entry: "./server/index.ts",
     target: "node",
+    module: {
+        rules: [...module_rules,
+            {
+                test: /\.tsx?$/,
+                use: {
+                    loader: "ts-loader",
+                    options: {
+                        compilerOptions: {
+                            target: "es5",
+                            module: "commonjs",
+                        }
+                    }
+                },
+                exclude: /node_modules/,
+            },
+        ]
+    },
     output: {
         path: path.resolve(root, "dist", "server"),
         filename: "server.js"
@@ -114,6 +147,5 @@ const server_config = {...common_config, ...{
 }}
 
 module.exports = [
-    web_config,
-    server_config
+    web_config
 ]

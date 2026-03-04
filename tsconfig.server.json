@@ -2,10 +2,10 @@
   "compilerOptions": {
     "target": "es6",
     "jsx": "react",
-    "module": "es2015",
-    "moduleResolution": "bundler",
+    "module": "commonjs",
     "rootDir": "./",
     "baseUrl": "./",
+    "outDir": "./dist/server/",
     "paths": {
       "common/*": ["./common/*"],
       "desktop/*": ["./desktop/*"],
@@ -32,5 +32,7 @@
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
     "skipLibCheck": true
-  }
+  },
+  "include": ["./server/**/*.ts", "./common/**/*.ts"],
+  "exclude": ["./web"]
 }
