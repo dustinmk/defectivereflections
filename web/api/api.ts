@@ -7,7 +7,7 @@ export const get = (path: string, params: GetParams= {}) => {
 }
 
 export const file = (path: string, params: GetParams = {}) => {
-    return apiQuery(path, "FILE", params, {}) as any;
+    return apiQuery(path, "FILE", params, {}) as Promise<Response>;
 }
 
 export const post = (path: string, body: object) => {

@@ -36,3 +36,16 @@ export const formatDateTime = (d: Date | null | string) => {
 
     return `${year}-${month}-${day}T${hour}:${min}:${sec}`
 }
+
+export function flattenBitmapData(data: number[][][]) {
+    const output: number[] = [];
+    for (const row of data) {
+        for (const point of row) {
+            output.push(point[0]);
+            output.push(point[1]);
+            output.push(point[2]);
+            output.push(1.0);
+        }
+    }
+    return output;
+}

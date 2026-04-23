@@ -12,24 +12,27 @@ export default function() {
 
         // Wrap in an object so function reference can be changed
         const callback = {
-            frame: function() {
+            frame() {
                 if (particle_field) {
                     particle_field.frame();
                 }
 
                 // Set the function to null to break the callback loop
                 if (this.frame !== null) {
-                    window.requestAnimationFrame(this.frame);
+                    window.requestAnimationFrame(() => this.frame !== null && this.frame());
                 }
             }
         } as {frame: null | (() => void)};
 
         if (particle_field_canvas.current !== null) {
-            setParticleField(new ParticleField(particle_field_canvas.current));
+            
+            const particle_field = new ParticleField(particle_field_canvas.current);
+            particle_field.loadModel("/assets/poetry-text.glb");
+            setParticleField(particle_field);
 
             // Initiate the loop
             if (callback.frame !== null) {
-                window.requestAnimationFrame(callback.frame);
+                window.requestAnimationFrame(() => callback.frame !== null && callback.frame());
             }
         }
 

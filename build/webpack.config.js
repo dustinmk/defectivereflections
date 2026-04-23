@@ -47,6 +47,13 @@ const module_rules = [
         generator: {
             filename: "fonts/[hash][ext][query]"
         }
+    },
+    {
+        test: /\.(wg|gl)sl$/i,
+        loader: "raw-loader",
+        options: {
+            esModule: false
+        }
     }
 ];
 

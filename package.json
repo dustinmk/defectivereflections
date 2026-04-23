@@ -6,7 +6,7 @@
   "scripts": {
     "watch": "cross-env NODE_ENV=development webpack watch -c build/webpack.config.js",
     "docker": "docker compose -f docker-compose.dev.yml up",
-    "build:server": "tsc -p tsconfig.server.json & resolve-tspaths -p tsconfig.server.json",
+    "build:server": "tsc -p tsconfig.server.json & resolve-tspaths -p tsconfig.server.json & copy-folder assets --ext=.glb dist/web/assets",
     "build": "rimraf dist/server & rimraf dist/web & cross-env NODE_ENV=development webpack -c build/webpack.config.js",
     "build:prod": "rimraf dist/server & rimraf dist/web & cross-env NODE_ENV=production webpack -c build/webpack.config.js",
     "test": "mocha -r ts-node/register -r tsconfig-paths/register 'test/**/*.test.ts'",
@@ -65,8 +65,11 @@
   "devDependencies": {
     "@uiw/react-textarea-code-editor": "^3.1.1",
     "better-react-mathjax": "^3.0.0",
+    "copy-folder": "^1.0.10",
+    "copy-folder-util": "^1.2.3",
     "gl-matrix": "^3.4.4",
     "immer": "^11.1.4",
+    "raw-loader": "^4.0.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-markdown": "^10.1.0",
