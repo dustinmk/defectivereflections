@@ -2,7 +2,7 @@ import { Document, DocumentVersion, Status } from "common/model";
 import { validate } from "jsonschema"
 import app from "server/app";
 import db from "server/db";
-import { copyAttachments, createDocument, createDocumentVersion, fetchDocument, fetchDocumentById, fetchDocumentVersion, fetchDocumentVersionById, listAttachments, listDocuments, listSections, listStatus, removeAttachment, removeDocument, removeDocumentVersion, removePrimaryDocumentVersion, saveAttachment, setPrimaryDocumentVersion, updateDocument, updateDocumentVersion, uploadFile } from "server/repository/documents";
+import { copyAttachments, createDocument, createDocumentVersion, DocumentSortTerm, fetchDocument, fetchDocumentById, fetchDocumentVersion, fetchDocumentVersionById, listAttachments, listDocuments, listSections, listStatus, removeAttachment, removeDocument, removeDocumentVersion, removePrimaryDocumentVersion, saveAttachment, setPrimaryDocumentVersion, updateDocument, updateDocumentVersion, uploadFile, viewDocuments } from "server/repository/documents";
 // import { createAdminUser, getUserCount, validateUser } from "server/repository/users";
 
 app.get("/api/status", async (req, res) => {
@@ -11,6 +11,32 @@ app.get("/api/status", async (req, res) => {
 
 app.get("/api/section", async (req, res) => {
     return res.json({status: await listSections()});
+});
+
+app.get("/api/public/document", async (req, res) => {
+    return res.json({documents: await viewDocuments(
+        req.query.status as string || null,
+        req.query.section as string || null, 
+        req.query.sort as DocumentSortTerm
+    )});
+});
+
+app.get("/api/public/document/:path", async (req, res) => {
+    const sections = await listSections();
+    const status = await listStatus();
+    const document: Document = await fetchDocument(req.params.path);
+    const document_version = await fetchDocumentVersionById(document.primary_document_version_id);
+    const attachments = document_version.version_number === null
+        ? []
+        : await listAttachments(document.path, document_version.version_number);
+
+    return res.json({
+        sections,
+        status,
+        document,
+        document_version,
+        attachments
+    });
 });
 
 app.get("/api/document", async (req, res) => {
@@ -61,8 +87,6 @@ app.delete("/api/document/:path", async (req, res) => {
 });
 
 app.put("/api/document/:path/:version", async (req, res) => {
-    const document_path = req.params.path;
-    const document_version_number = req.params.version;
     const {document, document_version} = req.body as {document: Document, document_version: DocumentVersion};
 
     if (document.id !== null && document_version.id === null) {

@@ -77,6 +77,7 @@
     "rehype-katex": "^7.0.1",
     "rehype-mathjax": "^7.1.0",
     "rehype-prism-plus": "^2.0.2",
+    "rehype-raw": "^7.0.0",
     "remark-math": "^6.0.0",
     "resolve-tspaths": "^0.8.23",
     "uuid": "^13.0.0",

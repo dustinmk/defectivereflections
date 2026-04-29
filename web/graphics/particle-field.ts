@@ -277,6 +277,7 @@ export class ParticleField {
         gl.clearDepth(1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+        gl.depthMask(false);
         gl.colorMask(true, true, true, true);
         gl.disable(gl.CULL_FACE);
 

@@ -12,6 +12,8 @@ import Admin from "web/pages/admin";
 import Documents from "web/pages/documents";
 import DocumentsEdit from "./pages/documents-edit";
 import { Modal } from "./components/modal";
+import { EssaysPage, GamesPage, PoetryPage, ProgrammingPage, ResearchPage, ReviewPage } from "./pages/main-pages";
+import ArticleView from "./pages/article-view";
 
 const router = createBrowserRouter([
     {
@@ -20,14 +22,20 @@ const router = createBrowserRouter([
         errorElement: <Error404Page />,
         children: [
             {path: "contact", element: <ContactPage />},
-            {path: "admin", element: <Admin />, children: [
-                {path: "documents", element: <Documents />, children: [
-                    {path: "edit", element: <DocumentsEdit />},
-                    {path: "edit/:document_path", element: <DocumentsEdit />},
-                ]}
-            ]}
-        ]
-    }
+            {path: "essays", element: <EssaysPage />, children: [{path: ":document_path", element: <ArticleView />}]},
+            {path: "poetry", element: <PoetryPage />},
+            {path: "research", element: <ResearchPage />},
+            {path: "reviews", element: <ReviewPage />},
+            {path: "games", element: <GamesPage />},
+            {path: "programming", element: <ProgrammingPage />},
+        ],
+    },
+    {path: "admin", element: <Admin />, children: [
+        {path: "documents", element: <Documents />, children: [
+            {path: "edit", element: <DocumentsEdit />},
+            {path: "edit/:document_path", element: <DocumentsEdit />},
+        ]}
+    ]},
 ])
 
 export default function() {

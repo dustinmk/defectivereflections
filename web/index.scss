@@ -37,6 +37,192 @@ p, span, li, div, button, input, a, img {
     }
 }
 
+.app {
+    background-color: transparent;
+    height: 100%;
+}
+
+.app__content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    & > * {
+        flex-grow: 1;
+    }
+
+    & > *:first-child {
+        flex-grow: 0;
+    }
+}
+
+.nav-menu {
+    height: 1.5rem;
+    display: flex;
+    margin: 0;
+    flex-direction: row;
+    column-gap: 2rem;
+    padding: 0.5rem;
+    background: transparent;
+
+    & > * {
+        list-style: none;
+        margin: 0;
+
+        & a {
+            text-decoration: none;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 400;
+
+            &:visited {
+                text-decoration: none;
+                color: white;
+            }
+        }
+    }
+}
+
+.horiz-layout {
+    display: flex;
+    flex-direction: row;
+
+    & > * {
+        flex-grow: 1;
+    }
+
+    & > *:first-child {
+        flex-grow: 0;
+    }
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 1rem;
+    background-color: #00000080;
+}
+
+.button-row {
+    display: flex;
+    column-gap: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    color: white;
+
+    & > * {
+        border: solid 1px #808080;
+        padding: 0.5rem;
+    }
+}
+
+.menu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    color: white;
+
+    & > li {
+        padding: 0.5rem 0 0 0;
+
+        & a {
+            text-decoration: none;
+            color: white;
+
+            &:visited {
+                text-decoration: none;
+                color: white;
+            }
+        }
+    }
+}
+
+.content-container {
+    background-image: url("/assets/paper.webp");
+    background-repeat: repeat-y;
+    background-size: contain;
+    margin: 4rem;
+    box-shadow: #00000080 4px 4px;
+}
+
+.content-view {
+    max-width: 40rem;
+    margin: 0 auto;
+    padding: 1rem;
+    & p,h1,h2,h3,h4,h5,span,div,a,img {
+        font-family: Georgia, 'Times New Roman', Times, serif;
+        line-height: 150%;
+    }
+
+    & > div {
+        max-height: none;
+    }
+}
+
+.content-preamble {
+    color: #606060;
+    font-style: italic;
+
+    & p {
+        margin: 0;
+    }
+
+    & > div {
+        display: flex;
+        column-gap: 2rem;
+    }
+}
+
+.markdown__toc {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    & a {
+        color: #606060;
+        text-decoration: none;
+
+        &:visited {
+            text-decoration: none;
+            color: #606060;
+        }
+    }
+}
+
+.markdown__toc__level {
+    & .markdown__toc__level {
+        margin-left: 1rem;
+    }
+}
+
+.markdown__toc__title {
+    margin: 1rem 0 0 0;
+    font-size: 1.5rem;
+    padding: 0;
+    color: #606060;
+}
+
+.markdown--todo {
+    color: #606060;
+    font-style: italic;
+}
+
+.main-menu {
+    list-style: none;
+    margin: 0;
+}
+
+.main-menu__children {
+    height: 0;
+    margin: 0 0.5rem 0 0;
+}
+
+.main-menu__children--expanded {
+    height: auto;
+}
+
 @mixin menu-item() {
     li {
         padding: 0.25rem 0;

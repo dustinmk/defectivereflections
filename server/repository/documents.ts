@@ -22,6 +22,47 @@ export async function listSections() {
     });
 }
 
+export type DocumentSortTerm = "name-asc" | "name-desc" | "edited-asc" | "edited-desc" | "created-asc" | "created-desc" | null;
+
+export async function viewDocuments(status: string | null, section: string | null, sort: DocumentSortTerm) {
+    return await db.transaction(async trx => {
+        let query = doc_select(trx)
+            .leftJoin("document_version", "document_version.id", "document_primary_version.document_version_id")
+            .join("status", "status.id", "document_version.status_id")
+            .join("section", "section.id", "document.section_id")
+            .whereNotNull("document_primary_version.document_version_id")
+            .whereNot("status.name", "hidden")
+
+        if (status !== null) {
+            query = query.where("status", status);
+        }
+
+        if (section !== null) {
+            query = query.where("section", section);
+        }
+        
+        if (sort === "name-asc") {
+            query = query.orderBy("name", "asc")
+        }  else if (sort === "name-desc") {
+            query = query.orderBy("name", "desc")
+        } else if (sort === "edited-asc") {
+            query = query.orderBy("edited", "asc")
+        } else if (sort === "edited-desc") {
+            query = query.orderBy("edited", "desc")
+        } else if (sort === "created-asc") {
+            query = query.orderBy("created", "asc")
+        } else if (sort === "created-desc") {
+            query = query.orderBy("created", "desc")
+        } else {
+            query = query.orderBy("edited", "desc")
+        }
+
+        const documents = await query;
+
+        return documents;
+    })
+}
+
 export async function listDocuments() {
     return await db.transaction(async trx => {
         const documents = await doc_select(trx)

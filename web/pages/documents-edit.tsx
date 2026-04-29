@@ -12,13 +12,14 @@ import rehypePrism from "rehype-prism-plus";
 import CodeEditor from "@uiw/react-textarea-code-editor";
 import Markdown from "react-markdown";
 import { confirmModal } from "web/components/modal";
+import { MarkdownEditor, transformMarkdown } from "./markdown-view";
 
 export default function() {
     const params = useParams<{document_path: string}>();
     const navigate = useNavigate();
     const doc_store = useDocuments();
 
-    const {documents, status_list, document, document_version} = doc_store;
+    const {documents, status_list, section_list, document, document_version} = doc_store;
 
     // React.useEffect(() => {
     //     setInterval(async () => {
@@ -149,6 +150,16 @@ export default function() {
                 value={document.path}
             ></input>
         </div>
+        <div className="labelled-field">
+            <label htmlFor="document-edit--status">Section</label>
+            <select
+                id="document-edit--status"
+                onChange={evt => doc_store.setDocumentSection(parseInt(evt.target.value))}
+                value={document.section_id || -1}
+            >
+                {[...section_list.values()].map(section => <option value={section.id}>{section.display_name}</option>)}
+            </select>
+        </div>
         
         <div className="labelled-field">
             <label htmlFor="document-edit--status">Status</label>
@@ -198,43 +209,7 @@ export default function() {
     </div>;
 }
 
-const MarkdownEditor = (props: {value: string, onChange: (value: string) => void, transform?: ((value: string) => string)}) => {
-    const [show, setShow] = React.useState(false);
 
-    if (show) {
-        return <div className="markdown-editor">
-            <button onClick={() => setShow(false)}>Hide</button>
-            <div>
-                <Markdown
-                    remarkPlugins={[RemarkMathPlugin]}
-                    rehypePlugins={[RehypeMathJaxPlugin, RehypeHighlightPlugin]}
-                >{props.transform === undefined ? props.value : props.transform(props.value)}
-                </Markdown>
-            </div>
-        </div>
-    }
-
-    return <div className="markdown-editor">
-        <button onClick={() => setShow(true)}>Show</button>
-        <CodeEditor
-            id="document-edit--content"
-            value={props.value}
-            language="markdown"
-            placeholder="No content entered..."
-            onChange={evt => props.onChange(evt.target.value)}
-            padding={15}
-            rehypePlugins={[
-                [rehypePrism, { ignoreMissing: true, showLineNumbers: true }]
-            ]}
-            style={{
-            fontSize: 12,
-            backgroundColor: "#f5f5f5",
-            fontFamily:
-                "ui-monospace,SFMono-Regular,SF Mono,Consolas,Liberation Mono,Menlo,monospace"
-            }}
-        />
-    </div>
-}
 
 const UploadAttachment = () => {
     const doc_store = useDocuments();
@@ -343,14 +318,4 @@ const uploadFile = () => {
     
     upload_elem.click();
     return promise;
-}
-
-const transformMarkdown = (source: string, attachments: Attachment[]) => {
-    return source.replace(/\!\[(.*)\]\((.+)\)/g, (match, p1, p2) => {
-        const matched_attachment = attachments.find(attachment => attachment.name === p2);
-        const url = matched_attachment === undefined
-            ? p2
-            : matched_attachment.path;
-        return `![${p1}](${url})`;
-    })
 }

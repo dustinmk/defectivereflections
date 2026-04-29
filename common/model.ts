@@ -16,6 +16,7 @@ export interface DocumentRecord {
     id: number | null;
     name: string;
     path: string;
+    enabled: string;
     created: Date | null;
     edited: Date | null;
     section_id: number | null;
@@ -62,6 +63,7 @@ export const EMPTY_DOCUMENT = {
     id: null,
     name: "",
     path: "",
+    enabled: "",
     created: null,
     edited: null,
     section_id: null,

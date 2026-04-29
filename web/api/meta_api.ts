@@ -1,4 +1,4 @@
-import { Status } from "common/model"
+import { Section, Status } from "common/model"
 import { get } from "./api"
 
 
@@ -9,6 +9,6 @@ export const meta_api = {
     },
     fetch_section_list: async () => {
         const result = await get("section")
-        return result.status as Status[]
+        return result.status as Section[]
     }
 }
