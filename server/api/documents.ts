@@ -169,6 +169,21 @@ app.put("/api/document/:path/:version/attachment/:attachment_id", async (req, re
 });
 
 app.post("/api/document/:path/:version/attachment", async (req, res) => {
+    const data = req.body as {name: string, content_path: string | undefined};
+
+    const version = parseInt(req.params.version);
+    if (isNaN(version)) {
+        return res.status(400).json({error: "Invalid document version"});
+    }
+
+    await saveAttachment(req.params.path, version, null, data.name, data.content_path);
+
+    return res.json({
+        attachments: await listAttachments(req.params.path, version)
+    });
+});
+
+app.post("/api/document/:path/:version/copy_attachments", async (req, res) => {
     const data = req.body as {attachment_ids: number[], prior_version: number};
 
     const version = parseInt(req.params.version);

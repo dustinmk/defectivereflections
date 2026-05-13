@@ -461,7 +461,7 @@ const validateUploadPath = async (filepath: string) => {
 export async function saveAttachment(
     document_path: string,
     version_number: number,
-    attachment_id: number,
+    attachment_id: number | null,
     new_name: string | undefined,
     content_path: string | undefined
 ) {
@@ -486,7 +486,7 @@ export async function saveAttachment(
             throw new Error("Invalid document version");
         }
 
-        const existing_attachment_result: Attachment = await trx
+        const existing_attachment_result: Attachment = attachment_id === null ? undefined : await trx
             .select()
             .from<Attachment>("attachment")
             .where("attachment.id", attachment_id)
@@ -505,7 +505,7 @@ export async function saveAttachment(
         let save_file: string | null = null;
         if (content_path !== undefined) {
             const rel_save_folder = "/attachments"
-            const abs_save_folder = path.resolve(process.cwd(), "..", "web", "attachments");
+            const abs_save_folder = path.resolve(process.cwd(), "web", "attachments");
             const original_file = path.resolve(process.cwd(), "upload", `${content_path}`);
 
             await fsPromises.mkdir(abs_save_folder, {recursive: true});
@@ -641,7 +641,11 @@ export async function removeAttachment(document_path: string, version_number: nu
             .where("path", existing_attachment.path);
 
         if ((file_used_count[0].count || 0) <= 0) {
-            await fsPromises.rm(path.join(process.cwd(), "..", "web", existing_attachment.path));
+            try {
+                await fsPromises.rm(path.join(process.cwd(), "..", "web", existing_attachment.path));
+            } catch {
+                // Ignore
+            }
         }
     });
 }

@@ -26,6 +26,10 @@ export function DocumentParamsPage() {
 export function StatusPage() {
     const doc_store = useDocuments();
 
+    React.useEffect(() => {
+        doc_store.fetchMeta();
+    }, [])
+
     return <div className="admin-content content form">
         <ul>
             {[...doc_store.status_list.values()].map(status => {
@@ -42,13 +46,14 @@ function StatusElement({status}: {status: Status}) {
     const [name, setName] = React.useState(status.name);
     const [display_name, setDisplayName] = React.useState(status.display_name);
 
-    const [edit, ref] = useFocus(() => doc_store.updateStatus(status.id, name, display_name));
+    const [edit, ref] = useFocus<HTMLDivElement>(() => doc_store.updateStatus(status.id, name, display_name));
 
-    return <span ref={ref}>
-        <input value={name} disabled={!edit}></input>
-        <input value={display_name} disabled={!edit}></input>
+    return <div ref={ref} >
+        <input type="text" value={name} disabled={!edit}></input>
+        <input type="text" value={display_name} disabled={!edit}></input>
         <button onClick={() => doc_store.deleteStatus(status.id)}><i className="fa-solid fa-trash"></i></button>
-    </span>
+        <button><i className="fa-solid fa-pencil"></i></button>
+    </div>
 }
 
 function useFocus<T extends HTMLElement>(onBlur?: () => void) {
@@ -56,18 +61,24 @@ function useFocus<T extends HTMLElement>(onBlur?: () => void) {
     const [edit, setEdit] = React.useState(false);
 
     React.useEffect(() => {
-        const focusHandler = () => {
+
+        const elem = ref.current;
+
+        const focusHandler = (evt: MouseEvent) => {
             setEdit(true);
         }
 
-        const blurHandler = (evt: PointerEvent) => {
+        const blurHandler = (evt: MouseEvent) => {
+            evt.stopPropagation();
+            evt.preventDefault();
+
             if (evt.currentTarget === null) {
                 return;
             }
 
-            const current_target = evt.currentTarget as HTMLElement;
+            const target = evt.target as HTMLElement;
 
-            if (current_target.contains(ref.current) && current_target !== ref.current) {
+            if (target.contains(elem) && target !== elem) {
                 setEdit(false);
                 if (onBlur) {
                     onBlur();
@@ -76,14 +87,14 @@ function useFocus<T extends HTMLElement>(onBlur?: () => void) {
         }
 
         if (ref.current !== null) {
-            ref.current.addEventListener("click", focusHandler);
+            ref.current.addEventListener("click", focusHandler, false);
         }
 
         document.body.addEventListener("click", blurHandler);
 
         return () => {
-            if (ref.current !== null) {
-                ref.current.removeEventListener("click", focusHandler)
+            if (elem !== null) {
+                elem.removeEventListener("click", focusHandler, false)
             }
             
             document.body.removeEventListener("click", blurHandler);

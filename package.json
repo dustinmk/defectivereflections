@@ -11,7 +11,9 @@
     "build:prod": "rimraf dist/server & rimraf dist/web & cross-env NODE_ENV=production webpack -c build/webpack.config.js",
     "test": "mocha -r ts-node/register -r tsconfig-paths/register 'test/**/*.test.ts'",
     "deploy": "build",
-    "migrate": "knex --knexfile dist/knexfile.js --migrations-directory ../migrations"
+    "migrate:latest": "knex --knexfile dist/knexfile.js --migrations-directory ../migrations migrate:latest",
+    "migrate:rollback": "knex --knexfile dist/knexfile.js --migrations-directory ../migrations migrate:rollback",
+    "migrate:make": "knex --knexfile dist/knexfile.js --migrations-directory ../migrations migrate:make"
   },
   "author": "",
   "license": "ISC",
