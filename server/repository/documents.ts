@@ -16,6 +16,22 @@ export async function listStatus() {
     });
 }
 
+export async function updateStatus(id: number, name: string, display_name: string) {
+    return await db.transaction(async trx => {
+        return await trx("status")
+            .where("id", id)
+            .update({name, display_name});
+    });
+}
+
+export async function deleteStatus(id: number) {
+    return await db.transaction(async trx => {
+        return await trx("status")
+            .where("id", id)
+            .del();
+    });
+}
+
 export async function listSections() {
     return await db.transaction(async trx => {
         return await trx.select().from<Section>("section");

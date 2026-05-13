@@ -12,6 +12,12 @@ export interface Section {
     display_name: string;
 }
 
+export interface Category {
+    id: number;
+    parent_id: number | null;
+    name: string;
+}
+
 export interface DocumentRecord {
     id: number | null;
     name: string;
@@ -32,12 +38,14 @@ export interface Document extends DocumentRecord {
         version_number: number;
     }[];
     primary_document_version_id: number | null;
+    categories: number[];
 }
 
 export interface DocumentVersionRecord {
     id: number | null;
     content: string;
     comments: string;
+    references: string;
     revision: string;
     version_number: number | null;
     created: Date | null;
@@ -52,6 +60,7 @@ export const EMPTY_DOCUMENT_VERSION = {
     content: "",
     revision: "",
     comments: "",
+    references: "",
     created: null,
     edited: null,
     document_id: null, 
@@ -68,7 +77,8 @@ export const EMPTY_DOCUMENT = {
     edited: null,
     section_id: null,
     versions: [],
-    primary_document_version_id: null
+    primary_document_version_id: null,
+    categories: []
 } as Document;
 
 export interface DocumentVersion extends DocumentVersionRecord {
