@@ -22,8 +22,8 @@ export default function() {
     return <div className="admin-section">
         <div className="admin-sidebar">
             <div>
-                <CategoryChooser value={category} setCategory={setCategory} />
-                <SectionChooser value={section} setSection={setSection} />
+                <CategoryChooser category_list={[...doc_store.category_list.values()]} value={category} setCategory={setCategory} />
+                <SectionChooser section_list={[...doc_store.section_list.values()]} value={section} setSection={setSection} />
                 <label>Documents</label>
                 <ul className="menu-vertical">
                     <li>
@@ -58,31 +58,61 @@ export default function() {
     </div>;
 }
 
-const CategoryChooser = ({value, setCategory}: {value: Category | null, setCategory: (value: Category | null) => void}) => {
+const CategoryChooser = ({
+    category_list,
+    value,
+    setCategory
+}: {
+    category_list: Category[],
+    value: Category | null,
+    setCategory: (value: Category | null) => void
+}) => {
     const doc_store = useDocuments();
     React.useEffect(() => {
         doc_store.fetchMeta();
     }, []);
 
-    return <div
-    >
-        <button onClick={() => setCategory(null)}>All</button>
+    return <div className="chooser">
+        <button
+            className={!value ? "chooser--active" : ""}
+            onClick={() => setCategory(null)}
+        >
+            All
+        </button>
         {[...doc_store.category_list.values()].map(category => {
-            return <button onClick={() => setCategory(category)}>{category.name}</button>
+            return <button
+                className={value && value.id === category.id ? "chooser--active" : ""}
+                onClick={() => setCategory(category)}
+            >
+                {category.name}
+            </button>
         })}
     </div>
 }
 
-const SectionChooser = ({value, setSection}: {value: Category | null, setSection: (value: Section | null) => void}) => {
-    const doc_store = useDocuments();
-    React.useEffect(() => {
-        doc_store.fetchMeta();
-    }, []);
-
-    return <div>
-        <button onClick={() => setSection(null)}>All</button>
-        {[...doc_store.section_list.values()].map(section => {
-            return <button onClick={() => setSection(section)}>{section.display_name}</button>
+const SectionChooser = ({
+    section_list,
+    value,
+    setSection
+}: {
+    section_list: Section[],
+    value: Category | null,
+    setSection: (value: Section | null) => void
+}) => {
+    return <div className="chooser">
+        <button
+            className={!value ? "chooser--active" : ""}
+            onClick={() => setSection(null)}
+        >
+            All
+        </button>
+        {[...section_list.values()].map(section => {
+            return <button
+                className={value && value.id === section.id ? "chooser--active" : ""}
+                onClick={() => setSection(section)}
+            >
+                {section.display_name}
+            </button>
         })}
     </div>
 }

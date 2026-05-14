@@ -78,9 +78,9 @@ export function CategoryPage() {
 
     return <div className="admin-content content form">
         <ul className="param-rows">
-            <li><AddCategoryElement /></li>
+            <li key="add-category"><AddCategoryElement /></li>
             {[...doc_store.category_list.values()].map(category => {
-                return <li>
+                return <li key={category.name}>
                     <CategoryElement category={category} />
                 </li>
             })}
