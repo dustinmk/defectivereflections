@@ -250,6 +250,7 @@ p, span, li, div, button, input, a, img {
     margin: 0;
     padding: 0.5rem;
     display: flex;
+    column-gap: 0.5rem;
     box-shadow: 2px 2px 4px #808080;
 
     @include menu-item();
@@ -288,6 +289,22 @@ p, span, li, div, button, input, a, img {
     label {
         width: 8rem;
         display: inline-block;
+    }
+}
+
+.param-rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    display: flex;
+    flex-direction: column;
+    row-gap: 0.5rem;
+
+    & > li > * {
+        display: flex;
+        flex-direction: row;
+        column-gap: 0.5rem;
     }
 }
 

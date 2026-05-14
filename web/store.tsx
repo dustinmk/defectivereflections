@@ -18,14 +18,14 @@ const init_state = {
     document_version: EMPTY_DOCUMENT_VERSION
 };
 
-export const useDocuments = create(combine(init_state, immer((set, get) => ({
-    setDocumentName: (name: string) => set(produce(state => {state.document.name = name})),
-    setDocumentPath: (path: string) => set(produce(state => {state.document.path = path})),
-    setDocumentSection: (section_id: number) => set(produce(state => {state.document.section_id = isNaN(section_id) ? 0 : section_id})),
-    setDocumentVersionStatus: (status_id: number) => set(produce(state => {state.document_version.status_id = isNaN(status_id) ? 0 : status_id})),
-    setDocumentVersionRevision: (revision: string) => set(produce(state => {state.document_version.revision = revision})),
-    setDocumentVersionComments: (comments: string) => set(produce(state => {state.document_version.comments = comments})),
-    setDocumentVersionContent: (content: string) => set(produce(state => {state.document_version.content = content})),
+export const useDocuments = create(immer(combine(init_state, (set, get) => ({
+    setDocumentName: (name: string) => set(state => {state.document.name = name}),
+    setDocumentPath: (path: string) => set(state => {state.document.path = path}),
+    setDocumentSection: (section_id: number) => set(state => {state.document.section_id = isNaN(section_id) ? 0 : section_id}),
+    setDocumentVersionStatus: (status_id: number) => set(state => {state.document_version.status_id = isNaN(status_id) ? 0 : status_id}),
+    setDocumentVersionRevision: (revision: string) => set(state => {state.document_version.revision = revision}),
+    setDocumentVersionComments: (comments: string) => set(state => {state.document_version.comments = comments}),
+    setDocumentVersionContent: (content: string) => set(state => {state.document_version.content = content}),
     fetchMeta: async () => {
         const status_result = await meta_api.fetch_status_list()
         set({status_list: new Map<number, Status>(status_result.map(status => [status.id, status]))});
@@ -36,21 +36,25 @@ export const useDocuments = create(combine(init_state, immer((set, get) => ({
         const category_result = await meta_api.fetch_category_list()
         set({category_list: new Map<number, Category>(category_result.map(category => [category.id, category]))});
     },
+    addStatus: async (name: string, display_name: string) => {
+        const status_result = await meta_api.add_status(name, display_name);
+        set({status_list: new Map<number, Status>(status_result.map(status => [status.id, status]))});
+    },
     updateStatus: async (id: number, name: string, display_name: string) => {
         const status_result = await meta_api.update_status(id, name, display_name);
-        set(state => state.status_list = new Map<number, Status>(status_result.map(status => [status.id, status])));
+        set({status_list: new Map<number, Status>(status_result.map(status => [status.id, status]))});
     },
     deleteStatus: async (id: number) => {
         const status_result = await meta_api.delete_status(id);
-        set(state => state.status_list = new Map<number, Status>(status_result.map(status => [status.id, status])))
+        set({status_list: new Map<number, Status>(status_result.map(status => [status.id, status]))});
     },
     updateCategory: async (id: number, name: string, parent_id: number | null) => {
         const category_result = await meta_api.update_category(id, name, parent_id);
-        set(state => state.category_list = new Map<number, Category>(category_result.map(category => [category.id, category])));
+        set({category_list: new Map<number, Category>(category_result.map(category => [category.id, category]))});
     },
     deleteCategory: async (id: number) => {
         const category_result = await meta_api.delete_category(id);
-        set(state => state.category_list = new Map<number, Category>(category_result.map(category => [category.id, category])))
+        set({category_list: new Map<number, Category>(category_result.map(category => [category.id, category]))})
     },
     fetchDocuments: async () => {
         const result = await document_api.list_documents()

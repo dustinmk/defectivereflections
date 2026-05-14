@@ -7,7 +7,7 @@ export default function() {
     return <div className="admin">
         <ul className="menu-toolbar">
             <li><NavLink to="/admin/documents">Documents</NavLink></li>
-            <li><NavLink to="/admin/status">Status</NavLink></li>
+            <li><NavLink to="/admin/params">Params</NavLink></li>
         </ul>
         <Outlet />
     </div>

@@ -2,15 +2,40 @@ import { Document, DocumentVersion, Status } from "common/model";
 import { validate } from "jsonschema"
 import app from "server/app";
 import db from "server/db";
-import { copyAttachments, createDocument, createDocumentVersion, DocumentSortTerm, fetchDocument, fetchDocumentById, fetchDocumentVersion, fetchDocumentVersionById, listAttachments, listDocuments, listSections, listStatus, removeAttachment, removeDocument, removeDocumentVersion, removePrimaryDocumentVersion, saveAttachment, setPrimaryDocumentVersion, updateDocument, updateDocumentVersion, uploadFile, viewDocuments } from "server/repository/documents";
+import { copyAttachments, createDocument, createDocumentVersion, createStatus, deleteStatus, DocumentSortTerm, fetchDocument, fetchDocumentById, fetchDocumentVersion, fetchDocumentVersionById, listAttachments, listDocuments, listSections, listStatus, removeAttachment, removeDocument, removeDocumentVersion, removePrimaryDocumentVersion, saveAttachment, setPrimaryDocumentVersion, updateDocument, updateDocumentVersion, updateStatus, uploadFile, viewDocuments } from "server/repository/documents";
 // import { createAdminUser, getUserCount, validateUser } from "server/repository/users";
 
 app.get("/api/status", async (req, res) => {
     return res.json({status: await listStatus()});
 });
 
+app.post("/api/status", async (req, res) => {
+    const {name, display_name} = req.body as {name: string, display_name: string};
+
+    await createStatus(name, display_name);
+
+    return res.json({status: await listStatus()});
+});
+
+app.put("/api/status/:id", async (req, res) => {
+    const {name, display_name} = req.body as {name: string, display_name: string};
+    const id = parseInt(req.params.id);
+
+    await updateStatus(id, name, display_name);
+
+    return res.json({status: await listStatus()});
+});
+
+app.delete("/api/status/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+
+    await deleteStatus(id);
+
+    return res.json({status: await listStatus()});
+});
+
 app.get("/api/section", async (req, res) => {
-    return res.json({status: await listSections()});
+    return res.json({section: await listSections()});
 });
 
 app.get("/api/public/document", async (req, res) => {

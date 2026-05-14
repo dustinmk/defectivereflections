@@ -31,7 +31,8 @@ export function StatusPage() {
     }, [])
 
     return <div className="admin-content content form">
-        <ul>
+        <ul className="param-rows">
+            <li><AddStatusElement /></li>
             {[...doc_store.status_list.values()].map(status => {
                 return <li>
                     <StatusElement status={status} />
@@ -41,22 +42,34 @@ export function StatusPage() {
     </div>
 }
 
+function AddStatusElement() {
+    const doc_store = useDocuments();
+    const [name, setName] = React.useState("");
+    const [display_name, setDisplayName] = React.useState("");
+
+    return <div>
+        <input type="text" value={name} onChange={evt => setName(evt.target.value)}></input>
+        <input type="text" value={display_name} onChange={evt => setDisplayName(evt.target.value)}></input>
+        <button><i className="fa-solid fa-plus" onClick={() => doc_store.addStatus(name, display_name)}></i></button>
+    </div>
+}
+
 function StatusElement({status}: {status: Status}) {
     const doc_store = useDocuments();
     const [name, setName] = React.useState(status.name);
     const [display_name, setDisplayName] = React.useState(status.display_name);
 
-    const [edit, ref] = useFocus<HTMLDivElement>(() => doc_store.updateStatus(status.id, name, display_name));
+    const [edit, ref] = useFocus<HTMLDivElement>(() => doc_store.updateStatus(status.id, name, display_name), [name, display_name]);
 
     return <div ref={ref} >
-        <input type="text" value={name} disabled={!edit}></input>
-        <input type="text" value={display_name} disabled={!edit}></input>
+        <input type="text" value={name} disabled={!edit} onChange={evt => setName(evt.target.value)}></input>
+        <input type="text" value={display_name} disabled={!edit} onChange={evt => setDisplayName(evt.target.value)}></input>
         <button onClick={() => doc_store.deleteStatus(status.id)}><i className="fa-solid fa-trash"></i></button>
         <button><i className="fa-solid fa-pencil"></i></button>
     </div>
 }
 
-function useFocus<T extends HTMLElement>(onBlur?: () => void) {
+function useFocus<T extends HTMLElement>(onBlur?: () => void, deps?: React.DependencyList) {
     const ref = React.createRef<T>();
     const [edit, setEdit] = React.useState(false);
 
@@ -78,7 +91,8 @@ function useFocus<T extends HTMLElement>(onBlur?: () => void) {
 
             const target = evt.target as HTMLElement;
 
-            if (target.contains(elem) && target !== elem) {
+            if (edit && target.contains(elem) && target !== elem) {
+                console.log(elem)
                 setEdit(false);
                 if (onBlur) {
                     onBlur();
@@ -99,7 +113,7 @@ function useFocus<T extends HTMLElement>(onBlur?: () => void) {
             
             document.body.removeEventListener("click", blurHandler);
         }
-    }, [ref.current]);
+    }, ([ref.current, edit] as React.DependencyList).concat(deps || []));
 
     return [edit, ref] as [boolean, React.RefObject<T>]
 }

@@ -12,7 +12,14 @@ const PARTIAL_DOC_VERSION_COLS = ["id", "created", "edited", "revision", "versio
 
 export async function listStatus() {
     return await db.transaction(async trx => {
-        return await trx.select().from<Status>("status");
+        return await trx.select().from<Status>("status").orderBy("status.name")
+    });
+}
+
+export async function createStatus(name: string, display_name: string) {
+    return await db.transaction(async trx => {
+        return await trx("status")
+            .insert({name, display_name});
     });
 }
 
