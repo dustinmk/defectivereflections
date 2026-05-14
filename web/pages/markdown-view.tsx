@@ -59,10 +59,10 @@ export const MarkdownEditor = (props: {value: string, onChange: (value: string) 
                 [rehypePrism, { ignoreMissing: true, showLineNumbers: true }]
             ]}
             style={{
-            fontSize: 12,
-            backgroundColor: "#f5f5f5",
-            fontFamily:
-                "ui-monospace,SFMono-Regular,SF Mono,Consolas,Liberation Mono,Menlo,monospace"
+                fontSize: "1.1rem",
+                backgroundColor: "#f5f5f5",
+                fontFamily:
+                    "ui-monospace,SFMono-Regular,SF Mono,Consolas,Liberation Mono,Menlo,monospace"
             }}
         />
     </div>
