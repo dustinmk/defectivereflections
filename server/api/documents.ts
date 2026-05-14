@@ -2,7 +2,7 @@ import { Document, DocumentVersion, Status } from "common/model";
 import { validate } from "jsonschema"
 import app from "server/app";
 import db from "server/db";
-import { copyAttachments, createDocument, createDocumentVersion, createStatus, deleteStatus, DocumentSortTerm, fetchDocument, fetchDocumentById, fetchDocumentVersion, fetchDocumentVersionById, listAttachments, listDocuments, listSections, listStatus, removeAttachment, removeDocument, removeDocumentVersion, removePrimaryDocumentVersion, saveAttachment, setPrimaryDocumentVersion, updateDocument, updateDocumentVersion, updateStatus, uploadFile, viewDocuments } from "server/repository/documents";
+import { copyAttachments, createCategory, createDocument, createDocumentVersion, createStatus, deleteCategory, deleteStatus, DocumentSortTerm, fetchDocument, fetchDocumentById, fetchDocumentVersion, fetchDocumentVersionById, listAttachments, listCategory, listDocuments, listSections, listStatus, removeAttachment, removeDocument, removeDocumentVersion, removePrimaryDocumentVersion, saveAttachment, setPrimaryDocumentVersion, updateCategory, updateDocument, updateDocumentVersion, updateStatus, uploadFile, viewDocuments } from "server/repository/documents";
 // import { createAdminUser, getUserCount, validateUser } from "server/repository/users";
 
 app.get("/api/status", async (req, res) => {
@@ -32,6 +32,35 @@ app.delete("/api/status/:id", async (req, res) => {
     await deleteStatus(id);
 
     return res.json({status: await listStatus()});
+});
+
+app.get("/api/category", async (req, res) => {
+    return res.json({category: await listCategory()});
+});
+
+app.post("/api/category", async (req, res) => {
+    const {name, parent_id} = req.body as {name: string, parent_id: number};
+
+    await createCategory(name, parent_id);
+
+    return res.json({category: await listCategory()});
+});
+
+app.put("/api/category/:id", async (req, res) => {
+    const {name, parent_id} = req.body as {name: string, parent_id: number};
+    const id = parseInt(req.params.id);
+
+    await updateCategory(id, name, parent_id);
+
+    return res.json({category: await listCategory()});
+});
+
+app.delete("/api/category/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+
+    await deleteCategory(id);
+
+    return res.json({category: await listCategory()});
 });
 
 app.get("/api/section", async (req, res) => {

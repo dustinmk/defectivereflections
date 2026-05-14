@@ -14,7 +14,7 @@ import DocumentsEdit from "./pages/documents-edit";
 import { Modal } from "./components/modal";
 import { EssaysPage, GamesPage, PoetryPage, ProgrammingPage, ResearchPage, ReviewPage } from "./pages/main-pages";
 import ArticleView from "./pages/article-view";
-import { DocumentParamsPage, StatusPage } from "./pages/document-params";
+import { CategoryPage, DocumentParamsPage, StatusPage } from "./pages/document-params";
 
 const router = createBrowserRouter([
     {
@@ -37,7 +37,8 @@ const router = createBrowserRouter([
             {path: "edit/:document_path", element: <DocumentsEdit />},
         ]},
         {path: "params", element: <DocumentParamsPage />, children: [
-            {path: "status", element: <StatusPage />}
+            {path: "status", element: <StatusPage />},
+            {path: "categories", element: <CategoryPage />}
         ]}
     ]},
 ])

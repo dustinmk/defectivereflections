@@ -21,6 +21,9 @@ export const meta_api = {
     fetch_category_list: async () => {
         return (await get("category")).category as Category[]
     },
+    add_category: async (name: string, parent_id: number | null) => {
+        return (await post(`category`, {name, parent_id})).category as Category[]
+    },
     update_category: async (id: number, name: string, parent_id: number | null) => {
         return (await put(`category/${id}`, {name, parent_id})).category as Category[]
     },

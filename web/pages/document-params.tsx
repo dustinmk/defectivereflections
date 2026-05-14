@@ -1,4 +1,4 @@
-import { Status } from "common/model";
+import { Category, Status } from "common/model";
 import React, { Ref } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useDocuments } from "web/store";
@@ -65,6 +65,48 @@ function StatusElement({status}: {status: Status}) {
         <input type="text" value={name} disabled={!edit} onChange={evt => setName(evt.target.value)}></input>
         <input type="text" value={display_name} disabled={!edit} onChange={evt => setDisplayName(evt.target.value)}></input>
         <button onClick={() => doc_store.deleteStatus(status.id)}><i className="fa-solid fa-trash"></i></button>
+        <button><i className="fa-solid fa-pencil"></i></button>
+    </div>
+}
+
+export function CategoryPage() {
+    const doc_store = useDocuments();
+
+    React.useEffect(() => {
+        doc_store.fetchMeta();
+    }, [])
+
+    return <div className="admin-content content form">
+        <ul className="param-rows">
+            <li><AddCategoryElement /></li>
+            {[...doc_store.category_list.values()].map(category => {
+                return <li>
+                    <CategoryElement category={category} />
+                </li>
+            })}
+        </ul>
+    </div>
+}
+
+function AddCategoryElement() {
+    const doc_store = useDocuments();
+    const [name, setName] = React.useState("");
+
+    return <div>
+        <input type="text" value={name} onChange={evt => setName(evt.target.value)}></input>
+        <button><i className="fa-solid fa-plus" onClick={() => doc_store.addCategory(name, null)}></i></button>
+    </div>
+}
+
+function CategoryElement({category}: {category: Category}) {
+    const doc_store = useDocuments();
+    const [name, setName] = React.useState(category.name);
+
+    const [edit, ref] = useFocus<HTMLDivElement>(() => doc_store.updateCategory(category.id, name, null), [name]);
+
+    return <div ref={ref} >
+        <input type="text" value={name} disabled={!edit} onChange={evt => setName(evt.target.value)}></input>
+        <button onClick={() => doc_store.deleteCategory(category.id)}><i className="fa-solid fa-trash"></i></button>
         <button><i className="fa-solid fa-pencil"></i></button>
     </div>
 }

@@ -48,6 +48,10 @@ export const useDocuments = create(immer(combine(init_state, (set, get) => ({
         const status_result = await meta_api.delete_status(id);
         set({status_list: new Map<number, Status>(status_result.map(status => [status.id, status]))});
     },
+    addCategory: async (name: string, parent_id: number | null) => {
+        const category_result = await meta_api.add_category(name, parent_id);
+        set({category_list: new Map<number, Category>(category_result.map(category => [category.id, category]))});
+    },
     updateCategory: async (id: number, name: string, parent_id: number | null) => {
         const category_result = await meta_api.update_category(id, name, parent_id);
         set({category_list: new Map<number, Category>(category_result.map(category => [category.id, category]))});

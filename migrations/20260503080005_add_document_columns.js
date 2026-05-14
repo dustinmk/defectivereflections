@@ -3,15 +3,7 @@
  * @returns { Promise<void> }
  */
 exports.up = function(knex) {
-  
-};
-
-/**
- * @param { import("knex").Knex } knex
- * @returns { Promise<void> }
- */
-exports.down = function(knex) {
-    knex.schema.table("document_version", table => {
+    return knex.schema.table("document_version", table => {
         table.string("references");
 
     }).createTable("category", table => {
@@ -24,4 +16,17 @@ exports.down = function(knex) {
         table.integer("category_id").notNullable().references("category.id");
         table.integer("document_id").notNullable().references("document.id");
     })
+};
+
+/**
+ * @param { import("knex").Knex } knex
+ * @returns { Promise<void> }
+ */
+exports.down = function(knex) {
+    return knex.schema
+        .dropTable("document_category")
+        .dropTable("category")
+        .table("document_version", table =>
+            table.dropColumn("references")
+        );
 };

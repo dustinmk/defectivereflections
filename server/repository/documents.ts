@@ -12,7 +12,9 @@ const PARTIAL_DOC_VERSION_COLS = ["id", "created", "edited", "revision", "versio
 
 export async function listStatus() {
     return await db.transaction(async trx => {
-        return await trx.select().from<Status>("status").orderBy("status.name")
+        return await trx.select()
+            .from<Status>("status")
+            .orderBy("status.name")
     });
 }
 
@@ -34,6 +36,37 @@ export async function updateStatus(id: number, name: string, display_name: strin
 export async function deleteStatus(id: number) {
     return await db.transaction(async trx => {
         return await trx("status")
+            .where("id", id)
+            .del();
+    });
+}
+
+export async function listCategory() {
+    return await db.transaction(async trx => {
+        return await trx.select()
+            .from<Status>("category")
+            .orderBy("category.name")
+    });
+}
+
+export async function createCategory(name: string, parent_id: number | null) {
+    return await db.transaction(async trx => {
+        return await trx("category")
+            .insert({name, parent_id});
+    });
+}
+
+export async function updateCategory(id: number, name: string, parent_id: number | null) {
+    return await db.transaction(async trx => {
+        return await trx("category")
+            .where("id", id)
+            .update({name, parent_id});
+    });
+}
+
+export async function deleteCategory(id: number) {
+    return await db.transaction(async trx => {
+        return await trx("category")
             .where("id", id)
             .del();
     });
