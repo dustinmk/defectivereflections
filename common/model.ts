@@ -46,6 +46,7 @@ export interface DocumentVersionRecord {
     content: string;
     comments: string;
     references: string;
+    subtitle: string;
     revision: string;
     version_number: number | null;
     created: Date | null;
@@ -61,6 +62,7 @@ export const EMPTY_DOCUMENT_VERSION = {
     revision: "",
     comments: "",
     references: "",
+    subtitle: "",
     created: null,
     edited: null,
     document_id: null, 

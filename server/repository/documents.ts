@@ -119,25 +119,50 @@ export async function viewDocuments(status: string | null, section: string | nul
     })
 }
 
-export async function listDocuments() {
+export async function listDocuments(category_id: number | null, section_id: number | null) {
     return await db.transaction(async trx => {
-        const documents = await doc_select(trx)
+        let document_query = doc_select(trx);
+
+        if (category_id !== null) {
+            document_query = document_query.where("document_category.category_id", "=", category_id);
+        }
+
+        if (section_id !== null) {
+            document_query = document_query.where("document.section_id", "=", section_id);
+        }
+
+        const documents = await document_query
+            .groupBy("document.id", "document_primary_version.document_version_id")
             .orderBy("edited", "desc");
         
         const versions = await trx
             .select("document_id", ...PARTIAL_DOC_VERSION_COLS)
             .rowNumber("version_rank", function() {this.orderBy("version_number", "desc").partitionBy("document_id")})
             .from<DocumentVersionRecord>("document_version")
+            .whereIn("document_id", documents.map(document => document.id))
+        
+        const categories = await trx
+            .select("document_id", "category_id")
+            .from("document_category")
+            .whereIn("document_id", documents.map(document => document.id))
 
         const doc_map = new Map<number, Document>(documents.map(document => [document.id, document]));
         for (const doc of doc_map.values()) {
             doc.versions = [];
+            doc.categories = [];
         }
 
         for (const version of versions) {
             const doc = doc_map.get(version.document_id);
             if (doc !== undefined) {
                 doc.versions = [version];
+            }
+        }
+
+        for (const category of categories) {
+            const doc = doc_map.get(category.document_id);
+            if (doc !== undefined) {
+                doc.categories.push(category.category_id)
             }
         }
 
@@ -151,13 +176,19 @@ export async function fetchDocument(document_path: string) {
             .where("path", document_path)
             .first();
 
+        const categories = (await trx
+            .select("category_id")
+            .from("document_category")
+            .where("document_id", document.id)
+        ).map(row => row.category_id)
+
         const versions = await trx
             .select(...PARTIAL_DOC_VERSION_COLS)
             .from("document_version")
             .where("document_id", document.id)
             .orderBy("version_number", "desc") as DocumentVersion[];
 
-        return {...document, versions};
+        return {...document, versions, categories};
     });
 }
 
@@ -167,13 +198,19 @@ export async function fetchDocumentById(document_id: number) {
             .where("document.id", document_id)
             .first();
 
+        const categories = (await trx
+            .select("category_id")
+            .from("document_category")
+            .where("document_id", document_id)
+        ).map(row => row.category_id)
+
         const versions = await trx
             .select(...PARTIAL_DOC_VERSION_COLS)
             .from("document_version")
             .where("document_id", document.id)
             .orderBy("version_number", "desc") as DocumentVersion[];
 
-        return {...document, versions};
+        return {...document, versions, categories};
     });
 }
 
@@ -235,6 +272,29 @@ export async function updateDocument(document: Document) {
                 section_id: document.section_id
             }, ["id"]);
 
+        const document_categories = (
+            await trx
+            .select("category_id")
+            .from("document_category")
+            .where("document_id", document.id)
+        ).map(row => row.category_id);
+
+        for (const category_id of document_categories) {
+            if (document.categories.indexOf(category_id) === -1) {
+                await trx("document_category")
+                    .where("document_id", document.id)
+                    .where("category_id", category_id)
+                    .del();
+            }
+        }
+
+        for (const category_id of document.categories) {
+            if (document_categories.indexOf(category_id) === -1) {
+                await trx("document_category")
+                    .insert({document_id: document.id, category_id: category_id});
+            }
+        }
+
         return document_id[0].id;
     });
 }
@@ -264,6 +324,8 @@ export async function updateDocumentVersion(document_version: DocumentVersion) {
                 content: document_version.content,
                 comments: document_version.comments,
                 revision: document_version.revision,
+                references: document_version.references,
+                subtitle: document_version.subtitle,
                 edited: new Date(),
                 status_id: document_version.status_id
             }, ["id"]);
@@ -722,4 +784,5 @@ const doc_select = (trx: Knex.Transaction<any, any[]>) => {
         .select("document.*", "document_primary_version.document_version_id as primary_document_version_id")
         .from<DocumentRecord>("document")
         .leftJoin("document_primary_version", "document_primary_version.document_id", "document.id")
+        .leftJoin("document_category", "document_category.document_id", "document.id")
 }

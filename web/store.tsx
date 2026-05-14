@@ -22,10 +22,19 @@ export const useDocuments = create(immer(combine(init_state, (set, get) => ({
     setDocumentName: (name: string) => set(state => {state.document.name = name}),
     setDocumentPath: (path: string) => set(state => {state.document.path = path}),
     setDocumentSection: (section_id: number) => set(state => {state.document.section_id = isNaN(section_id) ? 0 : section_id}),
+    addDocumentCategory: (category_id: number | null) => set(state => {category_id !== null && state.document.categories.push(category_id)}),
+    removeDocumentCategory: (category_id: number) => set(state => {
+        const index = state.document.categories.indexOf(category_id);
+        if (index !== undefined) {
+            state.document.categories.splice(index, 1);
+        }
+    }),
     setDocumentVersionStatus: (status_id: number) => set(state => {state.document_version.status_id = isNaN(status_id) ? 0 : status_id}),
     setDocumentVersionRevision: (revision: string) => set(state => {state.document_version.revision = revision}),
     setDocumentVersionComments: (comments: string) => set(state => {state.document_version.comments = comments}),
     setDocumentVersionContent: (content: string) => set(state => {state.document_version.content = content}),
+    setDocumentVersionReferences: (references: string) => set(state => {state.document_version.references = references}),
+    setDocumentVersionSubtitle: (subtitle: string) => set(state => {state.document_version.subtitle = subtitle}),
     fetchMeta: async () => {
         const status_result = await meta_api.fetch_status_list()
         set({status_list: new Map<number, Status>(status_result.map(status => [status.id, status]))});
@@ -60,8 +69,8 @@ export const useDocuments = create(immer(combine(init_state, (set, get) => ({
         const category_result = await meta_api.delete_category(id);
         set({category_list: new Map<number, Category>(category_result.map(category => [category.id, category]))})
     },
-    fetchDocuments: async () => {
-        const result = await document_api.list_documents()
+    fetchDocuments: async (filter?: {category?: number | null, section?: number | null}) => {
+        const result = await document_api.list_documents(filter)
         set({ documents: result })
     },
     fetch: async (path: string | undefined) => {

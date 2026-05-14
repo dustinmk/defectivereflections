@@ -19,6 +19,8 @@ export default function() {
     const navigate = useNavigate();
     const doc_store = useDocuments();
 
+    const [new_category, setNewCategory] = React.useState<number | null>(null);
+
     const {documents, status_list, section_list, document, document_version} = doc_store;
 
     // React.useEffect(() => {
@@ -37,13 +39,13 @@ export default function() {
             return "";
         }
         return result.name;
-    }
+     }
 
-    React.useEffect(() => {
-        if (documents.length === 0) {
-            doc_store.fetchDocuments()
-        }
-    }, [documents.length]);
+    // React.useEffect(() => {
+    //     if (documents.length === 0) {
+    //         doc_store.fetchDocuments()
+    //     }
+    // }, [documents.length]);
 
     React.useEffect(() => {
         if (status_list.size === 0) {
@@ -69,7 +71,6 @@ export default function() {
     const save = async () => {
         const init_id = document.id;
         await doc_store.save();
-        await doc_store.fetchDocuments();
         if (init_id === null) {
             navigate(`/admin/documents/edit/${document.path}`);
         }
@@ -160,6 +161,31 @@ export default function() {
                 {[...section_list.values()].map(section => <option value={section.id}>{section.display_name}</option>)}
             </select>
         </div>
+        <div className="labelled-field">
+            <label htmlFor="document-edit--category">Category</label>
+            <select
+                id="document-edit--category"
+                onChange={evt => setNewCategory(parseInt(evt.target.value))}
+                value={new_category || ""}
+            >
+                <option value=""></option>
+                {[...doc_store.category_list.values()].map(category => <option value={category.id}>{category.name}</option>)}
+            </select>
+            <button onClick={() => doc_store.addDocumentCategory(new_category)}><i className="fa-solid fa-plus"></i></button>
+            <div>
+                {document.categories.map(category_id => {
+                    const category = doc_store.category_list.get(category_id);
+                    if (!category) {
+                        return <></>
+                    }
+
+                    return <div>
+                        <span>{category.name}</span>
+                        <button onClick={() => doc_store.removeDocumentCategory(category.id)}><i className="fa-solid fa-trash"></i></button>
+                    </div>
+                })}
+            </div>
+        </div>
         
         <div className="labelled-field">
             <label htmlFor="document-edit--status">Status</label>
@@ -181,6 +207,14 @@ export default function() {
             ></input>
         </div>
         <div>
+            <label htmlFor="document-edit--subtitle">Subtitle</label>
+            <MarkdownEditor
+                value={document_version.subtitle}
+                onChange={value => doc_store.setDocumentVersionSubtitle(value)}
+                transform={value => transformMarkdown(value, document_version.attachments)}
+            />
+        </div>
+        <div>
             <label htmlFor="document-edit--comments">Comments</label>
             <MarkdownEditor
                 value={document_version.comments}
@@ -193,6 +227,14 @@ export default function() {
             <MarkdownEditor
                 value={document_version.content}
                 onChange={value => doc_store.setDocumentVersionContent(value)}
+                transform={value => transformMarkdown(value, document_version.attachments)}
+            />
+        </div>
+        <div>
+            <label htmlFor="document-edit--references">References</label>
+            <MarkdownEditor
+                value={document_version.references}
+                onChange={value => doc_store.setDocumentVersionReferences(value)}
                 transform={value => transformMarkdown(value, document_version.attachments)}
             />
         </div>

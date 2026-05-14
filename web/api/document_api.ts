@@ -3,8 +3,8 @@ import { del, get, post, put } from "./api"
 
 
 export const document_api = {
-    list_documents: async () => {
-        const result = await get(`document`)
+    list_documents: async (filter?: {category?: number | null, section?: number | null}) => {
+        const result = await get(`document`, filter ? {category: filter.category || "", section: filter.section || ""} : {})
         return result.documents as Document[]
     },
     fetch_document: async (document_path: string) => {

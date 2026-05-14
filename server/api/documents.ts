@@ -94,7 +94,19 @@ app.get("/api/public/document/:path", async (req, res) => {
 });
 
 app.get("/api/document", async (req, res) => {
-    return res.json({documents: await listDocuments()});
+    const {category} = req.query as {category: string};
+    let category_id: number | null = parseInt(category);
+    if (isNaN(category_id)) {
+        category_id = null;
+    }
+
+    const {section} = req.query as {section: string};
+    let section_id: number | null = parseInt(section);
+    if (isNaN(section_id)) {
+        section_id = null;
+    }
+
+    return res.json({documents: await listDocuments(category_id, section_id)});
 });
 
 app.get("/api/document/:path", async (req, res) => {

@@ -5,6 +5,7 @@
 exports.up = function(knex) {
     return knex.schema.table("document_version", table => {
         table.string("references");
+        table.string("subtitle");
 
     }).createTable("category", table => {
         table.increments("id");
@@ -27,6 +28,8 @@ exports.down = function(knex) {
         .dropTable("document_category")
         .dropTable("category")
         .table("document_version", table =>
-            table.dropColumn("references")
+            table
+                .dropColumn("references")
+                .dropColumn("subtitle")
         );
 };
