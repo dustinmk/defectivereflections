@@ -79,6 +79,14 @@ export const transformMarkdown = (source: string, attachments: Attachment[]) => 
         return `<span class="markdown--todo">${p1}</span>`;
     }).replace("\r", "");
 
+    source = source.replace(/(\([^)]+?\s[0-9]{4}\))/g, (match, p1) => {
+        return `<span class="markdown--citation">${p1}</span>`;
+    });
+
+    source = source.replace(/(\([0-9]{4}\))/g, (match, p1) => {
+        return `<span class="markdown--citation">${p1}</span>`;
+    });
+
     const lines = source.split("\n");
     processHeadingLevel(lines, "", 0, 1);
     const toc: ToC[] = [];
