@@ -3,9 +3,9 @@ import { createContext } from "react"
 import { Document, EMPTY_DOCUMENT, EMPTY_DOCUMENT_VERSION, Section, Status, Category } from "common/model"
 import {create} from "zustand";
 import {combine} from "zustand/middleware";
-import { document_api } from "./api/document_api";
+import { document_api } from "../api/document_api";
 import { produce } from "immer";
-import { meta_api } from "./api/meta_api";
+import { meta_api } from "../api/meta_api";
 import { removeAttachment } from "server/repository/documents";
 import {immer} from "zustand/middleware/immer";
 
@@ -35,14 +35,14 @@ export const useDocuments = create(immer(combine(init_state, (set, get) => ({
     setDocumentVersionContent: (content: string) => set(state => {state.document_version.content = content}),
     setDocumentVersionReferences: (references: string) => set(state => {state.document_version.references = references}),
     setDocumentVersionSubtitle: (subtitle: string) => set(state => {state.document_version.subtitle = subtitle}),
-    fetchMeta: async () => {
-        const status_result = await meta_api.fetch_status_list()
+    fetchMeta: async (section_id?: number | null, status_id?: number | null, category_id?: number | null) => {
+        const status_result = await meta_api.fetch_status_list(section_id || null, category_id || null)
         set({status_list: new Map<number, Status>(status_result.map(status => [status.id, status]))});
 
-        const section_result = await meta_api.fetch_section_list()
+        const section_result = await meta_api.fetch_section_list(status_id || null, category_id || null)
         set({section_list: new Map<number, Section>(section_result.map(section => [section.id, section]))});
 
-        const category_result = await meta_api.fetch_category_list()
+        const category_result = await meta_api.fetch_category_list(section_id || null, status_id || null)
         set({category_list: new Map<number, Category>(category_result.map(category => [category.id, category]))});
     },
     addStatus: async (name: string, display_name: string) => {
@@ -69,7 +69,7 @@ export const useDocuments = create(immer(combine(init_state, (set, get) => ({
         const category_result = await meta_api.delete_category(id);
         set({category_list: new Map<number, Category>(category_result.map(category => [category.id, category]))})
     },
-    fetchDocuments: async (filter?: {category?: number | null, section?: number | null}) => {
+    fetchDocuments: async (filter?: {category_id?: number | null, section_id?: number | null, status_id?: number | null, sort_method: string | null}) => {
         const result = await document_api.list_documents(filter)
         set({ documents: result })
     },

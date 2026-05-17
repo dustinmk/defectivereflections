@@ -1,4 +1,4 @@
-
+import React from "react";
 export interface Status {
     id: number;
     name: string;
@@ -98,3 +98,18 @@ export interface Attachment {
     document_id: number | null;
     document_version_id: number | null;
 }
+
+export interface SortMethod {
+    name: string;
+    display: string | React.ReactElement;
+    id: number;
+}
+
+export const SORT_OPTIONS: SortMethod[] = [
+    {name: "created-asc", display: (<span>Created&nbsp;<i className="fa-solid fa-arrow-up"></i></span>), id: 1},
+    {name: "created-desc", display: (<span>Created&nbsp;<i className="fa-solid fa-arrow-down"></i></span>), id: 2},
+    {name: "edited-asc", display: (<span>Edited&nbsp;<i className="fa-solid fa-arrow-up"></i></span>), id: 3},
+    {name: "edited-desc", display: (<span>Edited&nbsp;<i className="fa-solid fa-arrow-down"></i></span>), id: 4},
+    {name: "name-asc", display: (<span>Title&nbsp;<i className="fa-solid fa-arrow-up"></i></span>), id: 5},
+    {name: "name-desc", display: (<span>Title&nbsp;<i className="fa-solid fa-arrow-down"></i></span>), id: 6}
+];

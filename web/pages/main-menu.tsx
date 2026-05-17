@@ -1,7 +1,7 @@
 import React from "react";
 import { Outlet } from "react-router";
 import { Link } from "react-router-dom";
-import { useDocuments } from "web/store";
+import { useDocuments } from "web/stores/admin-document-store";
 
 interface MenuItemData {
     name: string;

@@ -1,7 +1,7 @@
 import { Category, Status } from "common/model";
 import React, { Ref } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useDocuments } from "web/store";
+import { useDocuments } from "web/stores/admin-document-store";
 import { formatDateTime } from "web/util";
 
 export function DocumentParamsPage() {

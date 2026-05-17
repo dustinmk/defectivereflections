@@ -3,10 +3,13 @@ import { validate } from "jsonschema"
 import app from "server/app";
 import db from "server/db";
 import { copyAttachments, createCategory, createDocument, createDocumentVersion, createStatus, deleteCategory, deleteStatus, DocumentSortTerm, fetchDocument, fetchDocumentById, fetchDocumentVersion, fetchDocumentVersionById, listAttachments, listCategory, listDocuments, listSections, listStatus, removeAttachment, removeDocument, removeDocumentVersion, removePrimaryDocumentVersion, saveAttachment, setPrimaryDocumentVersion, updateCategory, updateDocument, updateDocumentVersion, updateStatus, uploadFile, viewDocuments } from "server/repository/documents";
+import { toInt } from "web/util";
 // import { createAdminUser, getUserCount, validateUser } from "server/repository/users";
 
 app.get("/api/status", async (req, res) => {
-    return res.json({status: await listStatus()});
+    const {section_id, category_id} = req.query as {section_id: string, category_id: string};
+    const status = await listStatus(toInt(section_id), toInt(category_id))
+    return res.json({status});
 });
 
 app.post("/api/status", async (req, res) => {
@@ -35,7 +38,8 @@ app.delete("/api/status/:id", async (req, res) => {
 });
 
 app.get("/api/category", async (req, res) => {
-    return res.json({category: await listCategory()});
+    const {section} = req.query as {section: string};
+    return res.json({category: await listCategory(section || null)});
 });
 
 app.post("/api/category", async (req, res) => {
@@ -64,14 +68,16 @@ app.delete("/api/category/:id", async (req, res) => {
 });
 
 app.get("/api/section", async (req, res) => {
+    const {section} = req.query as {section: string};
     return res.json({section: await listSections()});
 });
 
 app.get("/api/public/document", async (req, res) => {
     return res.json({documents: await viewDocuments(
-        req.query.status as string || null,
-        req.query.section as string || null, 
-        req.query.sort as DocumentSortTerm
+        toInt(req.query.status as string) || null,
+        toInt(req.query.section as string) || null, 
+        toInt(req.query.category as string) || null,
+        req.query.sort_method as DocumentSortTerm
     )});
 });
 
@@ -94,19 +100,9 @@ app.get("/api/public/document/:path", async (req, res) => {
 });
 
 app.get("/api/document", async (req, res) => {
-    const {category} = req.query as {category: string};
-    let category_id: number | null = parseInt(category);
-    if (isNaN(category_id)) {
-        category_id = null;
-    }
+    const {category_id, section_id, status_id, sort_method} = req.query as {category_id: string, section_id: string, status_id: string, sort_method: string};
 
-    const {section} = req.query as {section: string};
-    let section_id: number | null = parseInt(section);
-    if (isNaN(section_id)) {
-        section_id = null;
-    }
-
-    return res.json({documents: await listDocuments(category_id, section_id)});
+    return res.json({documents: await listDocuments(toInt(category_id), toInt(section_id), toInt(status_id), sort_method)});
 });
 
 app.get("/api/document/:path", async (req, res) => {

@@ -10,11 +10,31 @@ import fs from "fs";
 
 const PARTIAL_DOC_VERSION_COLS = ["id", "created", "edited", "revision", "version_number", "status_id"];
 
-export async function listStatus() {
+export async function listStatus(section_id?: number | null, category_id?: number | null) {
     return await db.transaction(async trx => {
-        return await trx.select()
-            .from<Status>("status")
-            .orderBy("status.name")
+        if (!section_id && !category_id) {
+            return await trx.select()
+                .from<Status>("status")
+                .orderBy("status.name")
+        } else {
+            let query = trx.select("status.*")
+                .distinct("status.id")
+                .from<Status>("status")
+                .leftJoin("document_version", "document_version.status_id", "=", "status.id")
+                .leftJoin("document_primary_version", "document_primary_version.document_version_id", "=", "document_version.id")
+                .leftJoin("document", "document.id", "=", "document_primary_version.document_id")
+                .leftJoin("document_category", "document_category.document_id", "document.id")
+            
+            if (section_id) {
+                query = query.where("document.section_id", section_id)
+            }
+            
+            if (category_id) {
+                query = query.where("document_category.category_id", category_id)
+            }
+            
+            return await query.orderBy("status.name");
+        }
     });
 }
 
@@ -41,7 +61,7 @@ export async function deleteStatus(id: number) {
     });
 }
 
-export async function listCategory() {
+export async function listCategory(section?: string | null) {
     return await db.transaction(async trx => {
         return await trx.select()
             .from<Status>("category")
@@ -80,21 +100,26 @@ export async function listSections() {
 
 export type DocumentSortTerm = "name-asc" | "name-desc" | "edited-asc" | "edited-desc" | "created-asc" | "created-desc" | null;
 
-export async function viewDocuments(status: string | null, section: string | null, sort: DocumentSortTerm) {
+export async function viewDocuments(status_id: number | null, section_id: number | null, category_id: number | null, sort: DocumentSortTerm) {
     return await db.transaction(async trx => {
         let query = doc_select(trx)
             .leftJoin("document_version", "document_version.id", "document_primary_version.document_version_id")
-            .join("status", "status.id", "document_version.status_id")
-            .join("section", "section.id", "document.section_id")
+            .leftJoin("status", "status.id", "document_version.status_id")
+            .leftJoin("section", "section.id", "document.section_id")
+            .leftJoin("category", "category.id", "document.category_id")
             .whereNotNull("document_primary_version.document_version_id")
-            .whereNot("status.name", "hidden")
 
-        if (status !== null) {
-            query = query.where("status", status);
+        if (status_id !== null) {
+            query = query.where("status.id", status_id)
+                .whereNot("status.name", "hidden")
         }
 
-        if (section !== null) {
-            query = query.where("section", section);
+        if (section_id !== null) {
+            query = query.where("section.id", section_id);
+        }
+
+        if (category_id !== null) {
+            query = query.where("category.id", category_id);
         }
         
         if (sort === "name-asc") {
@@ -119,7 +144,7 @@ export async function viewDocuments(status: string | null, section: string | nul
     })
 }
 
-export async function listDocuments(category_id: number | null, section_id: number | null) {
+export async function listDocuments(category_id: number | null, section_id: number | null, status_id: number | null, sort_method: string | null) {
     return await db.transaction(async trx => {
         let document_query = doc_select(trx);
 
@@ -129,6 +154,27 @@ export async function listDocuments(category_id: number | null, section_id: numb
 
         if (section_id !== null) {
             document_query = document_query.where("document.section_id", "=", section_id);
+        }
+
+        if (status_id !== null) {
+            document_query = document_query.where("document_version.status_id", "=", status_id);
+        }
+
+        if (sort_method !== null && sort_method !== undefined && sort_method.length > 0) {
+            const [column, dir] = sort_method.split("-");
+
+            let order_dir = "asc";
+            if (dir === "desc") {
+                order_dir = "desc";
+            }
+
+            if (column === "created") {
+                document_query = document_query.orderBy("document.created", order_dir);
+            } else if (column === "edited") {
+                document_query = document_query.orderBy("document.edited", order_dir);
+            } else if (column === "name") {
+                document_query = document_query.orderBy("document.name", order_dir);
+            }
         }
 
         const documents = await document_query
@@ -784,5 +830,6 @@ const doc_select = (trx: Knex.Transaction<any, any[]>) => {
         .select("document.*", "document_primary_version.document_version_id as primary_document_version_id")
         .from<DocumentRecord>("document")
         .leftJoin("document_primary_version", "document_primary_version.document_id", "document.id")
+        .leftJoin("document_version", "document_version.id", "document_primary_version.document_version_id")
         .leftJoin("document_category", "document_category.document_id", "document.id")
 }

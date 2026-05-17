@@ -49,3 +49,20 @@ export function flattenBitmapData(data: number[][][]) {
     }
     return output;
 }
+
+export function toInt(v: number | string | null | undefined) {
+    if (v === null || v === undefined) {
+        return null;
+    }
+
+    if (typeof v === "string") {
+        const r = parseInt(v);
+        if (isNaN(r)) {
+            return null;
+        }
+
+        return r;
+    }
+
+    return v;
+}

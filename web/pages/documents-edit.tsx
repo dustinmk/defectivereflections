@@ -7,7 +7,7 @@ import RehypeHighlightPlugin from "rehype-highlight";
 import { useNavigate, useParams } from "react-router-dom";
 import { document_api } from "web/api/document_api";
 import { formatInputDate } from "web/util";
-import { useDocuments } from "web/store";
+import { useDocuments } from "web/stores/admin-document-store";
 import rehypePrism from "rehype-prism-plus";
 import CodeEditor from "@uiw/react-textarea-code-editor";
 import Markdown from "react-markdown";

@@ -1,7 +1,8 @@
-import { Category, Section } from "common/model";
+import { Category, Section, SORT_OPTIONS, SortMethod, Status } from "common/model";
 import React from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useDocuments } from "web/store";
+import { Chooser } from "web/components/chooser";
+import { useDocuments } from "web/stores/admin-document-store";
 import { formatDateTime } from "web/util";
 
 export default function() {
@@ -9,21 +10,44 @@ export default function() {
     const doc_store = useDocuments();
     const [category, setCategory] = React.useState<Category | null>(null);
     const [section, setSection] = React.useState<Section | null>(null);
+    const [status, setStatus] = React.useState<Status | null>(null);
+    const [sort_method, setSortMethod] = React.useState<SortMethod | null>(null);
     
     React.useEffect(() => {
+        doc_store.fetchMeta();
         doc_store.fetchDocuments({
-            category: category ? category.id : null,
-            section: section ? section.id : null,
+            category_id: category ? category.id : null,
+            section_id: section ? section.id : null,
+            status_id: status ? status.id : null,
+            sort_method: sort_method ? sort_method.name : null
         });
-    }, [category, section]);
+    }, [category, section, status, sort_method]);
 
-    const {documents, document, status_list} = doc_store;
+    const {documents, document, status_list, section_list, category_list} = doc_store;
 
     return <div className="admin-section">
         <div className="admin-sidebar">
             <div>
-                <CategoryChooser category_list={[...doc_store.category_list.values()]} value={category} setCategory={setCategory} />
-                <SectionChooser section_list={[...doc_store.section_list.values()]} value={section} setSection={setSection} />
+                <Chooser
+                    item_list={SORT_OPTIONS.map(sort => ({name: sort.display, id: sort.id}))}
+                    value={sort_method}
+                    setItem={v => setSortMethod(v === null ? null : SORT_OPTIONS.find(sort => sort.id === v.id) || null)}
+                />
+                <Chooser<Category>
+                    item_list={[...category_list.values()]}
+                    value={category}
+                    setItem={setCategory}
+                />
+                <Chooser
+                    item_list={[...section_list.values()].map(value => ({name: value.display_name, id: value.id}))}
+                    value={section ? {name: section.name, id: section.id} : null}
+                    setItem={v => setSection(v === null ? null : section_list.get(v.id) || null)}
+                />
+                <Chooser
+                    item_list={[...doc_store.status_list.values()].map(value => ({name: value.display_name, id: value.id}))}
+                    value={status ? {name: status.name, id: status.id} : null}
+                    setItem={v => setStatus(v === null ? null : doc_store.status_list.get(v.id) || null)}
+                />
                 <label>Documents</label>
                 <ul className="menu-vertical">
                     <li>
@@ -56,63 +80,4 @@ export default function() {
         </div>
         <Outlet />
     </div>;
-}
-
-const CategoryChooser = ({
-    category_list,
-    value,
-    setCategory
-}: {
-    category_list: Category[],
-    value: Category | null,
-    setCategory: (value: Category | null) => void
-}) => {
-    const doc_store = useDocuments();
-    React.useEffect(() => {
-        doc_store.fetchMeta();
-    }, []);
-
-    return <div className="chooser">
-        <button
-            className={!value ? "chooser--active" : ""}
-            onClick={() => setCategory(null)}
-        >
-            All
-        </button>
-        {[...doc_store.category_list.values()].map(category => {
-            return <button
-                className={value && value.id === category.id ? "chooser--active" : ""}
-                onClick={() => setCategory(category)}
-            >
-                {category.name}
-            </button>
-        })}
-    </div>
-}
-
-const SectionChooser = ({
-    section_list,
-    value,
-    setSection
-}: {
-    section_list: Section[],
-    value: Category | null,
-    setSection: (value: Section | null) => void
-}) => {
-    return <div className="chooser">
-        <button
-            className={!value ? "chooser--active" : ""}
-            onClick={() => setSection(null)}
-        >
-            All
-        </button>
-        {[...section_list.values()].map(section => {
-            return <button
-                className={value && value.id === section.id ? "chooser--active" : ""}
-                onClick={() => setSection(section)}
-            >
-                {section.display_name}
-            </button>
-        })}
-    </div>
 }
