@@ -1,5 +1,5 @@
 
-import { Attachment, Document, DocumentRecord, DocumentVersion, DocumentVersionRecord, EMPTY_DOCUMENT_VERSION, Section, Status } from "common/model";
+import { Attachment, Category, Document, DocumentRecord, DocumentVersion, DocumentVersionRecord, EMPTY_DOCUMENT_VERSION, Section, Status } from "common/model";
 import crypto, { randomUUID } from "crypto";
 import { Knex } from "knex";
 import moment from "moment";
@@ -8,11 +8,11 @@ import fsPromises, { constants } from "fs/promises";
 import db from "server/db";
 import fs from "fs";
 
-const PARTIAL_DOC_VERSION_COLS = ["id", "created", "edited", "revision", "version_number", "status_id"];
+const PARTIAL_DOC_VERSION_COLS = ["id", "created", "edited", "revision", "subtitle", "version_number", "status_id"];
 
 export async function listStatus(section_id?: number | null, category_id?: number | null) {
     return await db.transaction(async trx => {
-        if (!section_id && !category_id) {
+        if (section_id === undefined && category_id === undefined) {
             return await trx.select()
                 .from<Status>("status")
                 .orderBy("status.name")
@@ -20,7 +20,7 @@ export async function listStatus(section_id?: number | null, category_id?: numbe
             let query = trx.select("status.*")
                 .distinct("status.id")
                 .from<Status>("status")
-                .leftJoin("document_version", "document_version.status_id", "=", "status.id")
+                .join("document_version", "document_version.status_id", "=", "status.id")
                 .leftJoin("document_primary_version", "document_primary_version.document_version_id", "=", "document_version.id")
                 .leftJoin("document", "document.id", "=", "document_primary_version.document_id")
                 .leftJoin("document_category", "document_category.document_id", "document.id")
@@ -61,11 +61,31 @@ export async function deleteStatus(id: number) {
     });
 }
 
-export async function listCategory(section?: string | null) {
+export async function listCategory(status_id?: number | null, section_id?: number | null) {
     return await db.transaction(async trx => {
-        return await trx.select()
-            .from<Status>("category")
-            .orderBy("category.name")
+        if (status_id === undefined && section_id === undefined) {
+            return await trx.select()
+                .from<Status>("category")
+                .orderBy("category.name")
+        } else {
+            let query = trx.select("category.*")
+                .distinct("category.id")
+                .from<Category>("category")
+                .join("document_category", "document_category.category_id", "category.id")
+                .leftJoin("document", "document.id", "=", "document_category.document_id")
+                .leftJoin("document_primary_version", "document_primary_version.document_id", "=", "document.id")
+                .leftJoin("document_version", "document_version.id", "=", "document_primary_version.document_version_id")
+                
+            if (status_id) {
+                query = query.where("document_version.status_id", status_id)
+            }
+            
+            if (section_id) {
+                query = query.where("document.section_id", section_id)
+            }
+            
+            return await query.orderBy("category.name");
+        }
     });
 }
 
@@ -92,9 +112,31 @@ export async function deleteCategory(id: number) {
     });
 }
 
-export async function listSections() {
+export async function listSections(status_id?: number | null, category_id?: number | null) {
     return await db.transaction(async trx => {
-        return await trx.select().from<Section>("section");
+        if (status_id === undefined && category_id === undefined) {
+            return await trx.select()
+                .from<Status>("section")
+                .orderBy("section.name")
+        } else {
+            let query = trx.select("section.*")
+                .distinct("section.id")
+                .from<Section>("section")
+                .join("document", "document.section_id", "=", "section.id")
+                .leftJoin("document_primary_version", "document_primary_version.document_id", "=", "document.id")
+                .leftJoin("document_version", "document_version.id", "=", "document_primary_version.document_version_id")
+                .leftJoin("document_category", "document_category.document_id", "document.id")
+            
+            if (status_id) {
+                query = query.where("document_version.status_id", status_id)
+            }
+            
+            if (category_id) {
+                query = query.where("document_category.category_id", category_id)
+            }
+            
+            return await query.orderBy("section.name");
+        }
     });
 }
 

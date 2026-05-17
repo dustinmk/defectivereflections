@@ -21,23 +21,30 @@ export default function() {
     }
 
     const word_count = content.document_version.content.split(" ").reduce((prev, elem) => prev + 1, 0);
+    const section = content.sections.find(value => value.id === content.document.section_id)
+    const status = content.status.find(value => value.id === content.document_version.status_id);
+    const categories = content.document.categories.map(category => content.categories.find(c => c.id === category)).filter(category => category !== undefined);
 
     return <div className="content-container">
-        <div className="content-view">
+        <div className="content-view" id="content">
             <h1>{content.document.name}</h1>
+            
             <div className="content-preamble">
+                <div>
+                    <p>{content.document_version.subtitle}</p>
+                </div>
                 <div>
                     <p>Edited: {formatDate(content.document.edited)}</p>
                     <p>Created: {formatDate(content.document.created)}</p>
                 </div>
                 <div>
-                    <p>Section: {content.sections.find(value => value.id === content.document.section_id)?.display_name}</p>
-                    <p>Status: {content.status.find(value => value.id === content.document_version.status_id)?.display_name}</p>
+                    {section && <p>Section: {section.display_name}</p>}
+                    {status && <p>Status: {status.display_name}</p>}
+                    {categories.length > 0 && <p>{categories.length === 1 ? "Category:" : "Categories:"} {categories.map(category => category.name).join(", ")}</p>}
                     {content.document_version.revision.length > 0 && <p>Revision: {content.document_version.revision}</p>}
                     <p>Version: {content.document_version.version_number}</p>
                 </div>
                 {content.document_version.comments.length > 0 && <p>{content.document_version.comments}</p>}
-                <p>...status comments....</p>
                 <div>
                     <p>{word_count} Words</p>
                     <p><i className="fa-solid fa-clock"></i> Slow (200wpm): {Math.ceil(word_count / 200)}m</p>
@@ -48,6 +55,13 @@ export default function() {
                 value={content.document_version.content}
                 transform={value => transformMarkdown(value, content.document_version.attachments)}
             />
+            {content.document_version.references && <>
+                <h1>References</h1>
+                <MarkdownView
+                    value={content.document_version.references}
+                    transform={value => transformMarkdown(value, content.document_version.attachments)}
+                />
+            </>}
         </div>
     </div>;
 }

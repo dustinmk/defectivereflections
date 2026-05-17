@@ -59,7 +59,7 @@ export const MarkdownEditor = (props: {value: string, onChange: (value: string) 
                 [rehypePrism, { ignoreMissing: true, showLineNumbers: true }]
             ]}
             style={{
-                fontSize: "1.1rem",
+                fontSize: "1.0rem",
                 backgroundColor: "#f5f5f5",
                 fontFamily:
                     "ui-monospace,SFMono-Regular,SF Mono,Consolas,Liberation Mono,Menlo,monospace"
@@ -86,6 +86,10 @@ export const transformMarkdown = (source: string, attachments: Attachment[]) => 
     source = source.replace(/(\([0-9]{4}\))/g, (match, p1) => {
         return `<span class="markdown--citation">${p1}</span>`;
     });
+
+    source = source.replace(/^(#+[^#]+)#+$/gm, (match, p1) => {
+        return p1;
+    })
 
     const lines = source.split("\n");
     processHeadingLevel(lines, "", 0, 1);

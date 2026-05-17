@@ -2,7 +2,7 @@ import React from "react";
 import ArticleSelect from "./article-select";
 import { useDocuments } from "web/stores/admin-document-store";
 
-export function EssaysPage() {
+export function ArticlesPage() {
     const doc_store = useDocuments();
 
     React.useEffect(() => {
@@ -14,22 +14,3 @@ export function EssaysPage() {
     return <ArticleSelect section_id={section ? section.id : null}/>
 }
 
-export function PoetryPage() {
-    return <div></div>
-}
-
-export function ResearchPage() {
-    return <div></div>
-}
-
-export function ReviewPage() {
-    return <div></div>
-}
-
-export function GamesPage() {
-    return <div></div>
-}
-
-export function ProgrammingPage() {
-    return <div></div>
-}

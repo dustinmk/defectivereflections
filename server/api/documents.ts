@@ -38,8 +38,8 @@ app.delete("/api/status/:id", async (req, res) => {
 });
 
 app.get("/api/category", async (req, res) => {
-    const {section} = req.query as {section: string};
-    return res.json({category: await listCategory(section || null)});
+    const {status_id, section_id} = req.query as {status_id: string, section_id: string};
+    return res.json({category: await listCategory(toInt(status_id), toInt(section_id))});
 });
 
 app.post("/api/category", async (req, res) => {
@@ -68,8 +68,8 @@ app.delete("/api/category/:id", async (req, res) => {
 });
 
 app.get("/api/section", async (req, res) => {
-    const {section} = req.query as {section: string};
-    return res.json({section: await listSections()});
+    const {status_id, category_id} = req.query as {status_id: string, category_id: string};
+    return res.json({section: await listSections(toInt(status_id), toInt(category_id))});
 });
 
 app.get("/api/public/document", async (req, res) => {
@@ -84,6 +84,7 @@ app.get("/api/public/document", async (req, res) => {
 app.get("/api/public/document/:path", async (req, res) => {
     const sections = await listSections();
     const status = await listStatus();
+    const categories = await listCategory();
     const document: Document = await fetchDocument(req.params.path);
     const document_version = await fetchDocumentVersionById(document.primary_document_version_id);
     const attachments = document_version.version_number === null
@@ -93,6 +94,7 @@ app.get("/api/public/document/:path", async (req, res) => {
     return res.json({
         sections,
         status,
+        categories,
         document,
         document_version,
         attachments

@@ -12,7 +12,7 @@ import Admin from "web/pages/admin";
 import Documents from "web/pages/documents";
 import DocumentsEdit from "./pages/documents-edit";
 import { Modal } from "./components/modal";
-import { EssaysPage, GamesPage, PoetryPage, ProgrammingPage, ResearchPage, ReviewPage } from "./pages/main-pages";
+import { ArticlesPage } from "./pages/main-pages";
 import ArticleView from "./pages/article-view";
 import { CategoryPage, DocumentParamsPage, StatusPage } from "./pages/document-params";
 
@@ -22,13 +22,7 @@ const router = createBrowserRouter([
         element: <HomePage />,
         errorElement: <Error404Page />,
         children: [
-            {path: "contact", element: <ContactPage />},
-            {path: "essays", element: <EssaysPage />, children: [{path: ":document_path", element: <ArticleView />}]},
-            {path: "poetry", element: <PoetryPage />},
-            {path: "research", element: <ResearchPage />},
-            {path: "reviews", element: <ReviewPage />},
-            {path: "games", element: <GamesPage />},
-            {path: "programming", element: <ProgrammingPage />},
+            {path: "articles", element: <ArticlesPage />, children: [{path: ":document_path", element: <ArticleView />}]},
         ],
     },
     {path: "admin", element: <Admin />, children: [

@@ -19,7 +19,7 @@ html, body, .root {
 
 p, span, li, div, button, input, a, img {
     font-family: sans-serif;
-    font-size: 1.1rem;
+    font-size: 1.0rem;
 }
 
 .form {
@@ -44,7 +44,8 @@ p, span, li, div, button, input, a, img {
 }
 
 .app__content {
-    height: 100%;
+    min-height: calc(100% - 2rem);
+    padding: 1rem;
     display: flex;
     flex-direction: column;
 
@@ -63,8 +64,11 @@ p, span, li, div, button, input, a, img {
     margin: 0;
     flex-direction: row;
     column-gap: 2rem;
-    padding: 0.5rem;
+    padding: 0.5rem 2rem 0.5rem 2rem;
     background: transparent;
+    backdrop-filter: blur(10px);
+    box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.75);
+    border-radius: 2rem;
 
     & > * {
         list-style: none;
@@ -82,18 +86,31 @@ p, span, li, div, button, input, a, img {
             }
         }
     }
+
+    & a:hover {
+        filter: drop-shadow(0px 0px 5px gray);
+    }
 }
 
 .horiz-layout {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    margin: 1.5rem 0 0 0;
+    overflow-x: hidden;
+    animation: slideFromTop 0.2s ease-out forwards;
+
+    backdrop-filter: blur(10px);
+    box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.75);
+    border-radius: 2rem;
 
     & > * {
-        flex-grow: 1;
+        //flex-grow: 4;
     }
 
     & > *:first-child {
-        flex-grow: 0;
+        flex-grow: 1;
     }
 }
 
@@ -102,7 +119,71 @@ p, span, li, div, button, input, a, img {
     flex-direction: column;
     margin: 0;
     padding: 1rem;
-    background-color: #00000080;
+    width: 20%;
+    min-width: 20rem;
+}
+
+.document-page {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    column-gap: 4rem;
+    justify-content: center;
+
+    & * {
+        font-family: Georgia, 'Times New Roman', Times, serif;
+    }
+}
+
+.secondary {
+    color: gray;
+}
+
+.document-list {
+    width: 20rem;
+
+    & ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    & h1 {
+        border-bottom: solid 1px gray;
+        margin: 2rem 0.5rem 0 0.5rem;
+        padding: 0 0.0rem;
+        font-size: 1.5rem;
+    }
+
+    & h2, h3 {
+        margin: 2rem 0.5rem 0.5rem 0;
+        padding: 0 0.5rem;
+        font-size: 1.0rem;
+    }
+
+    & a {
+        text-decoration: none;
+
+        &:visited {
+            text-decoration: none;
+            color: black;
+        }
+    }
+}
+
+.document-item {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5rem;
+
+    & .document-item__subtitle, .document-item__categories, .document-item__status {
+        color: gray;
+        font-size: 0.9rem;
+    }
+
+    &:hover {
+        background-color: #80808040;
+    }
 }
 
 .button-row {
@@ -142,16 +223,45 @@ p, span, li, div, button, input, a, img {
 
 .content-container {
     background-image: url("/assets/paper.webp");
-    background-repeat: repeat-y;
+    background-repeat: repeat;
     background-size: contain;
-    margin: 4rem;
-    box-shadow: #00000080 4px 4px;
+    box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.75);
+    margin: 1rem;
+    border-radius: 1rem;
+    min-width: 70%;
+    position: relative;
+    animation: slideFromRight 0.2s ease-out forwards;
+}
+
+@keyframes slideFromTop {
+    from {
+        transform: scale(100%, 0);
+        transform-origin: top center;
+        opacity: 0;
+    }
+    to {
+        transform: scale(100%, 100%);
+        transform-origin: top center;
+        opacity: 1;
+    }
+}
+
+@keyframes slideFromRight {
+    from {
+        transform: translate(100%, 0);
+        opacity: 0;
+    }
+    to {
+        transform: translate(0, 0);
+        opacity: 1;
+    }
 }
 
 .content-view {
-    max-width: 40rem;
     margin: 0 auto;
     padding: 1rem;
+    max-width: 40rem;
+
     & p,h1,h2,h3,h4,h5,span,div,a,img {
         font-family: Georgia, 'Times New Roman', Times, serif;
         line-height: 150%;
@@ -319,13 +429,12 @@ p, span, li, div, button, input, a, img {
     column-gap: 0.5rem;
     row-gap: 0.5rem;
     flex-wrap: wrap;
-    margin: 0.5rem 0;
-    width: 20rem;
+    margin: 0.25rem 0;
 
     & > button {
         background-color: transparent;
         border: solid 1px black;
-        padding: 0.5rem;
+        padding: 0.25rem;
         flex-grow: 1;
         cursor: pointer;
 
@@ -340,7 +449,6 @@ p, span, li, div, button, input, a, img {
 }
 
 .markdown-editor {
-    max-width: 40rem;
     max-height: 20rem;
     overflow: auto;
 
@@ -367,7 +475,7 @@ p, span, li, div, button, input, a, img {
 .w-tc-editor {
     textarea {
         padding-left: calc(15px + 16px) !important;
-        font-size: 1.1rem;
+        font-size: 1.0rem;
     }
 
     .w-tc-editor-preview {

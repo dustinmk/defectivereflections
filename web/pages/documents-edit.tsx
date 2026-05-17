@@ -23,30 +23,6 @@ export default function() {
 
     const {documents, status_list, section_list, document, document_version} = doc_store;
 
-    // React.useEffect(() => {
-    //     setInterval(async () => {
-    //         await current_document().persistCurrentState();
-    //     }, 5000);
-    // }, [current_document().document, current_document().document_version])
-
-    const resolveStatusName = (status_id: number | null) => {
-        if (status_id === null) {
-            return "";
-        }
-
-        const result = status_list.get(status_id);
-        if (result === undefined) {
-            return "";
-        }
-        return result.name;
-     }
-
-    // React.useEffect(() => {
-    //     if (documents.length === 0) {
-    //         doc_store.fetchDocuments()
-    //     }
-    // }, [documents.length]);
-
     React.useEffect(() => {
         if (status_list.size === 0) {
             doc_store.fetchMeta()

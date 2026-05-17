@@ -10,12 +10,7 @@ interface MenuItemData {
 }
 
 const menu_paths: MenuItemData[] = [
-    {name: "Essays", children: [], path: "/essays"},
-    {name: "Poetry", children: [], path: "/poetry"},
-    {name: "Research", children: [], path: "/research"},
-    {name: "Review", children: [], path: "/review"},
-    {name: "Game Design", children: [], path: "/game"},
-    {name: "Programming", children: [], path: "/programming"},
+    {name: "Articles", children: [], path: "/articles"},
 ]
 
 export default function() {
@@ -28,6 +23,7 @@ export default function() {
     const [expanded_menu, setExpandedMenu] = React.useState(menu_paths[0].name);
 
     return <ul className="nav-menu">
+        <li><Link to="/">defectivereflections</Link></li>
         {menu_paths.map(menu => {
             return <MenuItem menu={menu} expand={expanded_menu === menu.name}/>
         })}

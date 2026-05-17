@@ -34,6 +34,7 @@ export interface Document extends DocumentRecord {
         created: Date;
         edited: Date;
         revision: string;
+        subtitle: string;
         status_id: number;
         version_number: number;
     }[];

@@ -42,7 +42,7 @@ export const useDocuments = create(immer(combine(init_state, (set, get) => ({
         const section_result = await meta_api.fetch_section_list(status_id || null, category_id || null)
         set({section_list: new Map<number, Section>(section_result.map(section => [section.id, section]))});
 
-        const category_result = await meta_api.fetch_category_list(section_id || null, status_id || null)
+        const category_result = await meta_api.fetch_category_list(status_id || null, section_id || null)
         set({category_list: new Map<number, Category>(category_result.map(category => [category.id, category]))});
     },
     addStatus: async (name: string, display_name: string) => {

@@ -1,9 +1,10 @@
-import { Attachment, Document, DocumentVersion, Section, Status } from "common/model"
+import { Attachment, Category, Document, DocumentVersion, Section, Status } from "common/model"
 import { del, get, post, put } from "./api"
 
 export interface PublicDocument {
     sections: Section[];
     status: Status[];
+    categories: Category[];
     document: Document;
     document_version: DocumentVersion;
     attachments: Attachment[];
