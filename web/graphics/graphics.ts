@@ -50,7 +50,7 @@ export class Graphics {
         }
 
         this.particle_field = new ParticleField(this.gl);
-        this.glass_text = new GlassText(this.gl);
+        this.glass_text = new GlassText(this.gl, this.viewport);
     }
 
     private configureGl(canvas: HTMLCanvasElement) {

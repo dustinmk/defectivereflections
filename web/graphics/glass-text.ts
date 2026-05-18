@@ -1,8 +1,10 @@
 import { mat4, vec4, vec3, mat3 } from "gl-matrix";
-import { createFramebuffer, createIndexedStateTexture, createPNGTexture, createProgram, loadJSONFile, ShaderProgram } from "./gl-util";
+import { createBlankTexture, createFramebuffer, createIndexedStateTexture, createPNGTexture, createProgram, loadJSONFile, ShaderProgram } from "./gl-util";
 import glass_text_vs from "./glass-text.vs.glsl";
 import glass_text_fs from "./glass-text.fs.glsl";
-import { FrameParams } from "./graphics";
+import composite_vs from "./composite.vs.glsl";
+import composite_fs from "./composite.fs.glsl";
+import { FrameParams, Viewport } from "./graphics";
 
 // Create rendering pipeline and draw quad to start
 // Then load in a mesh
@@ -65,16 +67,29 @@ interface FontAtlas {
 
 export class GlassText {
     private glass_text_program: ShaderProgram;
+    private composite_program: ShaderProgram;
     private mtsdf_tex: WebGLTexture;
     private font_atlas: FontAtlas | null = null;
+    private text_framebuffer: WebGLFramebuffer;
+    private text_framebuffer_tex: WebGLTexture;
 
-    constructor(private readonly gl: WebGL2RenderingContext) {
+    constructor(private readonly gl: WebGL2RenderingContext, viewport: Viewport) {
         this.glass_text_program = createProgram(this.gl, {
             vs_source: glass_text_vs,
             fs_source: glass_text_fs,
             attrib: [],
             uniform: ["mtsdf_tex", "rect", "glyph_rects", "char_rects", "char_count"]
         });
+
+        this.composite_program = createProgram(this.gl, {
+            vs_source: composite_vs,
+            fs_source: composite_fs,
+            attrib: [],
+            uniform: ["composite_tex"]
+        });
+
+        this.text_framebuffer = createFramebuffer(this.gl);
+        this.text_framebuffer_tex = createBlankTexture(gl, viewport.width, viewport.height);
 
         this.mtsdf_tex = createPNGTexture(this.gl, "/assets/font.png");
         loadJSONFile("/assets/font.json").then(result => this.font_atlas = result);
@@ -89,22 +104,37 @@ export class GlassText {
 
         this.glass_text_program.use();
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.text_framebuffer);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.text_framebuffer_tex, 0);
+        const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER)
+        gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
 
-        // // gl.viewport(0, 0, frame_params.viewport.width, frame_params.viewport.height);
-        
+        gl.viewport(0, 0, frame_params.viewport.width, frame_params.viewport.height);
+
         gl.enable(gl.DEPTH_TEST);
         gl.enable(gl.BLEND);
         gl.depthFunc(gl.LEQUAL);
         gl.depthMask(true);
+        gl.colorMask(true, true, true, true);
         gl.depthRange(0.0, 1.0);
-        // // gl.clearColor(0.75, 0.80, 0.85, 1.0);
-        // // gl.clearDepth(1.0);
-        // // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        gl.clearDepth(1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-        // // gl.depthMask(false);
-        // // gl.colorMask(true, true, true, true);
+
+        const pixel = new Uint8Array(4);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+        console.log("actual clear value:", pixel);
+        
         // // gl.disable(gl.CULL_FACE);
+
+        
+
+        
+        
+        
+
+        
 
         gl.uniform4f(this.glass_text_program.uniforms.rect, 0.0, 0.8, 0.2, 0.2);
 
@@ -132,7 +162,7 @@ export class GlassText {
 
         let h_cursor = 0;
         let v_cursor = 0;
-        const em = 0.015;
+        const em = 0.05;
 
         for (let i = 0; i < text.length; i++) {
             const char = text[i];
@@ -180,5 +210,31 @@ export class GlassText {
         gl.uniform1i(this.glass_text_program.uniforms.char_count, text.length);
 
         gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, text.length);
+
+
+
+        this.composite_program.use();
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, frame_params.viewport.width, frame_params.viewport.height);
+
+        gl.enable(gl.DEPTH_TEST);
+        gl.enable(gl.BLEND);
+        gl.depthFunc(gl.LEQUAL);
+        gl.depthMask(true);
+        gl.depthRange(0.0, 1.0);
+        // // gl.clearColor(0.75, 0.80, 0.85, 1.0);
+        // // gl.clearDepth(1.0);
+        // // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.depthMask(false);
+        gl.colorMask(true, true, true, true);
+        // // gl.disable(gl.CULL_FACE);
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.text_framebuffer_tex);
+        gl.uniform1i(this.glass_text_program.uniforms.composite_tex, 0);
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
 }
