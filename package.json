@@ -69,6 +69,7 @@
     "better-react-mathjax": "^3.0.0",
     "copy-folder": "^1.0.10",
     "copy-folder-util": "^1.2.3",
+    "copy-webpack-plugin": "^14.0.0",
     "gl-matrix": "^3.4.4",
     "immer": "^11.1.6",
     "raw-loader": "^4.0.2",

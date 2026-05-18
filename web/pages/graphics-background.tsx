@@ -1,10 +1,10 @@
 import React from "react";
-import { ParticleField } from "web/graphics/particle-field";
+import { Graphics } from "web/graphics/graphics";
 
 
 export default function() {
-    const particle_field_canvas = React.useRef<HTMLCanvasElement>(null);
-    const [particle_field, setParticleField] = React.useState<ParticleField | null>(null);
+    const graphics_canvas = React.useRef<HTMLCanvasElement>(null);
+    const [graphics, setGraphics] = React.useState<Graphics | null>(null);
 
     React.useEffect(() => {
 
@@ -13,8 +13,13 @@ export default function() {
         // Wrap in an object so function reference can be changed
         const callback = {
             frame() {
-                if (particle_field) {
-                    particle_field.frame();
+                if (graphics) {
+                    graphics.frame({
+                        particle_field: ["/assets/poetry-text.glb"],
+                        glass_text: {
+                            text: "defectivereflections"
+                        }
+                    });
                 }
 
                 // Set the function to null to break the callback loop
@@ -24,11 +29,10 @@ export default function() {
             }
         } as {frame: null | (() => void)};
 
-        if (particle_field_canvas.current !== null) {
+        if (graphics_canvas.current !== null) {
             
-            const particle_field = new ParticleField(particle_field_canvas.current);
-            particle_field.loadModel("/assets/poetry-text.glb");
-            setParticleField(particle_field);
+            const graphics = new Graphics(graphics_canvas.current);
+            setGraphics(graphics);
 
             // Initiate the loop
             if (callback.frame !== null) {
@@ -44,7 +48,7 @@ export default function() {
             callback.frame = null;
         }
 
-    }, [particle_field_canvas.current])
+    }, [graphics_canvas.current])
 
-    return <canvas ref={particle_field_canvas} style={{width: "100%", height: "100%", zIndex: -100, position: "fixed"}} />;
+    return <canvas ref={graphics_canvas} style={{width: "100%", height: "100%", zIndex: -100, position: "fixed"}} />;
 }

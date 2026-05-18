@@ -5,6 +5,7 @@ import particle_field_fs from "./particle-field.fs.glsl";
 import particle_simulation_vs from "./particle-simulation.vs.glsl";
 import particle_simulation_fs from "./particle-simulation.fs.glsl";
 import { importGLB } from "./glb-import";
+import { FrameParams } from "./graphics";
 
 // Create rendering pipeline and draw quad to start
 // Then load in a mesh
@@ -16,22 +17,17 @@ import { importGLB } from "./glb-import";
 // borrowing from other projects if need more complexity
 
 export class ParticleField {
-    private readonly gl: WebGL2RenderingContext;
-    private viewport: {width: number, height: number} = {width: 0, height: 0};
+    
     private particle_program: ShaderProgram;
     private simulation_program: ShaderProgram;
     private simulation_framebuffer: WebGLFramebuffer;
     private position_tex: WebGLTexture[];
     private anchor_tex: WebGLTexture;
     private velocity_tex: WebGLTexture[];
-    private last_time: number;
-    private frame_index = 0;
+    private loaded_models: Set<string> = new Set();
 
-    constructor(private canvas: HTMLCanvasElement) {
-        this.last_time = performance.now();
+    constructor(private readonly gl: WebGL2RenderingContext) {
 
-        this.gl = this.configureGl(canvas);
-        this.viewport = this.configureViewport(canvas);
         this.particle_program = createProgram(this.gl, {
             vs_source: particle_field_vs,
             fs_source: particle_field_fs,
@@ -45,15 +41,6 @@ export class ParticleField {
             attrib: [],
             uniform: ["anchor_tex", "position_tex", "velocity_tex", "dt", "time"]
         });
-
-        // const ext = this.gl.getExtension('OES_texture_float');
-        // if (ext === null) {
-        //     throw new Error("WebGL extension OES_texture_float is required");
-        // }
-
-        if (!this.gl.getExtension('EXT_color_buffer_float')) {
-            console.error('Rendering to floating point textures is not supported');
-        }
 
         this.simulation_framebuffer = createFramebuffer(this.gl);
 
@@ -102,6 +89,12 @@ export class ParticleField {
     }
 
     public async loadModel(path: string) {
+        if (this.loaded_models.has(path)) {
+            return;
+        }
+
+        this.loaded_models.add(path);
+
         const mesh = await importGLB(path);
         if (mesh === null) {
             return;
@@ -172,60 +165,9 @@ export class ParticleField {
         this.anchor_tex = createIndexedStateTexture(this.gl, anchor_data);
     }
 
-    private configureGl(canvas: HTMLCanvasElement) {
-        let gl = <WebGL2RenderingContext>canvas.getContext("webgl2");
-        if (gl === null) {
-            gl = <WebGL2RenderingContext>canvas.getContext("experimental-webgl2");
-        }
-
-        return gl;
-    }
-
-    private configureViewport(canvas: HTMLCanvasElement) {
-        canvas.width = canvas.clientWidth;
-        canvas.height = canvas.clientHeight;
-        window.onresize = () => {
-            this.viewport.width = canvas.clientWidth;
-            this.viewport.height = canvas.clientHeight;
-            canvas.width = canvas.clientWidth;
-            canvas.height = canvas.clientHeight;
-        }
-
-        return {
-            width: canvas.clientWidth,
-            height: canvas.clientHeight
-        };
-    }
-
-    public frame() {
-        this.render();
-    }
-
-    private render() {
-        const now = performance.now();
-        const dt = (now - this.last_time) / 1000.0;
-        this.last_time = now;
-
-        
-        const read_index = this.frame_index % 2;
-        const write_index = 1 - read_index;
+    public frame(frame_params: FrameParams) {
 
         const gl = this.gl;
-
-        const eye_pos = vec3.fromValues(2.0, 4.0 * Math.sin(0.1 * now / 1000.0), 2.0 * Math.cos(0.1 * now / 1000.0));
-        //const eye_pos = vec3.fromValues(0.0, 0.0, -10.0);
-        const look_pos = vec3.fromValues(0.0, 0.0, 0.0);
-        const eye_dir = vec3.sub(vec3.create(), look_pos, eye_pos);
-        const projection = mat4.lookAt(mat4.create(), eye_pos, look_pos, [0, 1, 0]);
-        // const perspective = mat4.ortho(
-        //     mat4.create(),
-        //     -4.0,
-        //     4.0,
-        //     -4.0 * this.viewport.height / this.viewport.width,
-        //     4.0 * this.viewport.height / this.viewport.width,
-        //     -100.0,
-        //     100.0);
-        const perspective = mat4.perspective(mat4.create(), (0.25 * Math.PI), this.viewport.width / this.viewport.height, 0.01, 100.0);
 
         this.simulation_program.use();
 
@@ -238,11 +180,11 @@ export class ParticleField {
         
 
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.position_tex[read_index]);
+        gl.bindTexture(gl.TEXTURE_2D, this.position_tex[frame_params.read_index]);
         gl.uniform1i(this.simulation_program.uniforms.position_tex, 0);
 
         gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, this.velocity_tex[read_index]);
+        gl.bindTexture(gl.TEXTURE_2D, this.velocity_tex[frame_params.read_index]);
         gl.uniform1i(this.simulation_program.uniforms.velocity_tex, 1);
 
         gl.activeTexture(gl.TEXTURE2);
@@ -250,13 +192,13 @@ export class ParticleField {
         gl.uniform1i(this.simulation_program.uniforms.anchor_tex, 2);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.simulation_framebuffer);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.position_tex[write_index], 0);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, this.velocity_tex[write_index], 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.position_tex[frame_params.write_index], 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, this.velocity_tex[frame_params.write_index], 0);
         const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER)
         gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
 
-        gl.uniform1f(this.simulation_program.uniforms.dt, dt);
-        gl.uniform1f(this.simulation_program.uniforms.time, now % 100.0);
+        gl.uniform1f(this.simulation_program.uniforms.dt, frame_params.dt);
+        gl.uniform1f(this.simulation_program.uniforms.time, frame_params.now % 100.0);
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -266,7 +208,7 @@ export class ParticleField {
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-        gl.viewport(0, 0, this.viewport.width, this.viewport.height);
+        gl.viewport(0, 0, frame_params.viewport.width, frame_params.viewport.height);
         
         gl.enable(gl.DEPTH_TEST);
         gl.enable(gl.BLEND);
@@ -281,17 +223,13 @@ export class ParticleField {
         gl.colorMask(true, true, true, true);
         gl.disable(gl.CULL_FACE);
 
-        gl.uniformMatrix4fv(this.particle_program.uniforms.projection, false, projection);
-        gl.uniformMatrix4fv(this.particle_program.uniforms.perspective, false, perspective);
+        gl.uniformMatrix4fv(this.particle_program.uniforms.projection, false, frame_params.projection);
+        gl.uniformMatrix4fv(this.particle_program.uniforms.perspective, false, frame_params.perspective);
 
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.position_tex[write_index]);
+        gl.bindTexture(gl.TEXTURE_2D, this.position_tex[frame_params.write_index]);
         gl.uniform1i(this.particle_program.uniforms.position_tex, 0);
 
-        
-
         gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, 256 * 256);
-
-        this.frame_index += 1;
     }
 }
