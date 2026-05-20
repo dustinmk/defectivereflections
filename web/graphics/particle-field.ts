@@ -6,6 +6,7 @@ import particle_simulation_vs from "./particle-simulation.vs.glsl";
 import particle_simulation_fs from "./particle-simulation.fs.glsl";
 import { importGLB } from "./glb-import";
 import { FrameParams } from "./graphics";
+import { create } from "zustand";
 
 // Create rendering pipeline and draw quad to start
 // Then load in a mesh
@@ -20,7 +21,7 @@ export class ParticleField {
     
     private particle_program: ShaderProgram;
     private simulation_program: ShaderProgram;
-    private simulation_framebuffer: WebGLFramebuffer;
+    private simulation_framebuffers: WebGLFramebuffer[];
     private position_tex: WebGLTexture[];
     private anchor_tex: WebGLTexture;
     private velocity_tex: WebGLTexture[];
@@ -42,7 +43,7 @@ export class ParticleField {
             uniform: ["anchor_tex", "position_tex", "velocity_tex", "dt", "time"]
         });
 
-        this.simulation_framebuffer = createFramebuffer(this.gl);
+        this.simulation_framebuffers = [createFramebuffer(this.gl), createFramebuffer(this.gl)];
 
         const position_data: number[][][] = [];
         for (let y = 0; y < 256; ++y) {
@@ -86,6 +87,16 @@ export class ParticleField {
             velocity_data.push(row);
         }
         this.velocity_tex = [createIndexedStateTexture(this.gl, velocity_data), createIndexedStateTexture(this.gl, velocity_data)];
+
+        for (let i = 0; i < this.simulation_framebuffers.length; ++i) {
+            const framebuffer = this.simulation_framebuffers[i];
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.position_tex[i], 0);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, this.velocity_tex[i], 0);
+            const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER)
+            gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+        }
     }
 
     public async loadModel(path: string) {
@@ -171,6 +182,8 @@ export class ParticleField {
 
         this.simulation_program.use();
 
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.simulation_framebuffers[frame_params.write_index]);
+        
         gl.viewport(0, 0, 256, 256);
         gl.disable(gl.BLEND);
         gl.disable(gl.DEPTH_TEST);
@@ -191,11 +204,8 @@ export class ParticleField {
         gl.bindTexture(gl.TEXTURE_2D, this.anchor_tex);
         gl.uniform1i(this.simulation_program.uniforms.anchor_tex, 2);
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.simulation_framebuffer);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.position_tex[frame_params.write_index], 0);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, this.velocity_tex[frame_params.write_index], 0);
-        const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER)
-        gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+        
+        
 
         gl.uniform1f(this.simulation_program.uniforms.dt, frame_params.dt);
         gl.uniform1f(this.simulation_program.uniforms.time, frame_params.now % 100.0);
@@ -206,7 +216,7 @@ export class ParticleField {
 
         this.particle_program.use();
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, frame_params.framebuffer);
 
         gl.viewport(0, 0, frame_params.viewport.width, frame_params.viewport.height);
         
@@ -215,9 +225,9 @@ export class ParticleField {
         gl.depthFunc(gl.LEQUAL);
         gl.depthMask(true);
         gl.depthRange(0.0, 1.0);
-        gl.clearColor(0.75, 0.80, 0.85, 1.0);
-        gl.clearDepth(1.0);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        // gl.clearColor(0.75, 0.80, 0.85, 1.0);
+        // gl.clearDepth(1.0);
+        // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
         gl.depthMask(false);
         gl.colorMask(true, true, true, true);

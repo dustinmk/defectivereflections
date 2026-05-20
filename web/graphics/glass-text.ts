@@ -85,7 +85,7 @@ export class GlassText {
             vs_source: composite_vs,
             fs_source: composite_fs,
             attrib: [],
-            uniform: ["composite_tex"]
+            uniform: ["composite_tex", "scene_tex"]
         });
 
         this.text_framebuffer = createFramebuffer(this.gl);
@@ -307,7 +307,7 @@ export class GlassText {
 
         this.composite_program.use();
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, frame_params.framebuffer);
         gl.viewport(0, 0, frame_params.viewport.width, frame_params.viewport.height);
 
         gl.enable(gl.DEPTH_TEST);
@@ -324,10 +324,12 @@ export class GlassText {
         // // gl.disable(gl.CULL_FACE);
 
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.text_framebuffer_tex);
-        gl.uniform1i(this.glass_text_program.uniforms.composite_tex, 0);
+        gl.bindTexture(gl.TEXTURE_2D, frame_params.scene_texture);
+        gl.uniform1i(this.composite_program.uniforms.composite_tex, 0);
 
-        
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, this.text_framebuffer_tex);
+        gl.uniform1i(this.composite_program.uniforms.scene_tex, 1);
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }

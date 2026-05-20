@@ -1,6 +1,8 @@
 import { mat4, vec4, vec3, mat3 } from "gl-matrix";
 import { ParticleField } from "./particle-field";
 import { GlassText } from "./glass-text";
+import { SmokeBackground } from "./smoke-background";
+import { createBlankTexture, createFramebuffer } from "./gl-util";
 
 export interface Viewport {
     width: number;
@@ -18,6 +20,8 @@ export interface FrameParams {
     projection: mat4;
     perspective: mat4;
     viewport: Viewport;
+    framebuffer: WebGLFramebuffer | null;
+    scene_texture: WebGLTexture | null;
 }
 
 export interface GraphicsStage {
@@ -38,6 +42,9 @@ export class Graphics {
     private frame_index = 0;
     private particle_field: ParticleField;
     private glass_text: GlassText;
+    private smoke_background: SmokeBackground;
+    private scene_framebuffer: WebGLFramebuffer;
+    private scene_texture: WebGLTexture;
 
     constructor(private canvas: HTMLCanvasElement) {
         this.last_time = performance.now();
@@ -49,8 +56,16 @@ export class Graphics {
             console.error('Rendering to floating point textures is not supported');
         }
 
+        this.smoke_background = new SmokeBackground(this.gl, this.viewport);
         this.particle_field = new ParticleField(this.gl);
         this.glass_text = new GlassText(this.gl, this.viewport);
+
+        this.scene_framebuffer = createFramebuffer(this.gl);
+        this.scene_texture = createBlankTexture(this.gl, this.viewport.width, this.viewport.height);
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.scene_framebuffer);
+        this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_2D, this.scene_texture, 0);
+        this.gl.drawBuffers([this.gl.COLOR_ATTACHMENT0]);
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     }
 
     private configureGl(canvas: HTMLCanvasElement) {
@@ -119,10 +134,16 @@ export class Graphics {
             eye_dir,
             projection,
             perspective,
-            viewport: this.viewport
+            viewport: this.viewport,
+            framebuffer: this.scene_framebuffer,
+            scene_texture: null
         }
 
+        this.smoke_background.frame(frame_params);
         this.particle_field.frame(frame_params);
+
+        frame_params.framebuffer = null;
+        frame_params.scene_texture = this.scene_texture;
         this.glass_text.frame(frame_params, draw_queue.glass_text.text);
 
         this.frame_index += 1;
