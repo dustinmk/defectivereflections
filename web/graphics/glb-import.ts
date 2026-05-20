@@ -366,10 +366,12 @@ export async function importGLB(path: string) {
                         vertex_attribute = "tex";
                     }
 
-                    for (let i = 0; i < accessor.count; i++) {
-                        for (let step = 0; step < stride; step++) {
-                            const value = dv.getFloat32(data_offset + byte_offset + (step_size * stride * i) + (step * step_size), true);
-                            (vertices[vertices_base + i] as {[index: string]: number[]})[vertex_attribute][step] = value;
+                    if (vertex_attribute !== "") {
+                        for (let i = 0; i < accessor.count; i++) {
+                            for (let step = 0; step < stride; step++) {
+                                const value = dv.getFloat32(data_offset + byte_offset + (step_size * stride * i) + (step * step_size), true);
+                                (vertices[vertices_base + i] as {[index: string]: number[]})[vertex_attribute][step] = value;
+                            }
                         }
                     }
                 }

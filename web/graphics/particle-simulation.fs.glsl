@@ -27,7 +27,7 @@ void main() {
     float dist = length(position.xyz - anchor.xyz);
     vec3 anchor_force = (10.0 * dist * dir) - (3.0 * velocity.xyz);
     vec2 seed = uv + time;
-    vec4 noise_force = 2.0 * exp(vec4(random(seed), random(seed + 1.0), random(seed + 2.0), 2.0) - 0.5) - 1.0;
+    vec4 noise_force = 0.1 * exp(vec4(random(seed), random(seed + 1.0), random(seed + 2.0), 2.0) - 0.5) - 1.0;
     outVelocity = vec4(velocity.xyz + dt * (anchor_force + noise_force.xyz), 1.0);
     outPosition = vec4(position.xyz + (dt * velocity.xyz), 1.0);
     //outPosition = position + vec4(dt * dir, 0.0);

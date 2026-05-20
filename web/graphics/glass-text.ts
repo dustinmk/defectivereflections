@@ -78,7 +78,7 @@ export class GlassText {
             vs_source: glass_text_vs,
             fs_source: glass_text_fs,
             attrib: [],
-            uniform: ["mtsdf_tex", "rect", "glyph_rects", "char_rects", "char_count"]
+            uniform: ["mtsdf_tex", "rect", "glyph_rects", "char_rects", "char_count", "time"]
         });
 
         this.composite_program = createProgram(this.gl, {
@@ -95,7 +95,7 @@ export class GlassText {
         loadJSONFile("/assets/font.json").then(result => this.font_atlas = result);
     }
 
-    public frame(frame_params: FrameParams, text: string) {
+    public frame(frame_params: FrameParams, text_lines: {text: string, invert: boolean}[]) {
         if (!this.font_atlas) {
             return;
         }
@@ -120,11 +120,10 @@ export class GlassText {
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         gl.clearDepth(1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
         const pixel = new Uint8Array(4);
         gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
-        console.log("actual clear value:", pixel);
         
         // // gl.disable(gl.CULL_FACE);
 
@@ -163,53 +162,146 @@ export class GlassText {
         let h_cursor = 0;
         let v_cursor = 0;
         const em = 0.05;
+        let char_count = 0;
+        let line_widths: number[] = [];
+        let total_height = 0;
+        let total_width = 0;
 
-        for (let i = 0; i < text.length; i++) {
-            const char = text[i];
+        for (const line of text_lines) {
+            const text = line.text;
 
-            const char_code = char.charCodeAt(0);
-            const glyph = glyph_map.get(char_code);
-            if (!glyph) {
-                h_cursor += em;
-                continue;
+            let line_width = 0;
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const char_code = char.charCodeAt(0);
+                const glyph = glyph_map.get(char_code);
+                if (!glyph) {
+                    h_cursor += em;
+                    continue;
+                }
+
+                if (i > 0) {
+                    const advance_map = kerning_map.get(text.charCodeAt(i - 1));
+                    if (advance_map !== undefined) {
+                        const advance = advance_map.get(text.charCodeAt(i));
+                        if (advance !== undefined) {
+                            h_cursor += em * advance;
+                        }
+                    }
+                }
+
+                const x = h_cursor + (em * glyph.planeBounds.left);
+                const w = (h_cursor + (em * glyph.planeBounds.right)) - x;
+                h_cursor += em * glyph.advance;
+                line_width = h_cursor;
+            }
+            line_widths.push(line_width);
+            total_width = Math.max(total_width, line_width);
+            v_cursor -= em * (1 + this.font_atlas.metrics.lineHeight);
+            h_cursor = 0;
+        }
+
+        total_height = (text_lines.length - 1) * (em * (1 + this.font_atlas.metrics.lineHeight));
+
+        h_cursor = 0;
+        v_cursor = total_height;
+        for (let line_index = 0; line_index < text_lines.length; line_index++) {
+            const line = text_lines[line_index];
+            const text = line.text;
+            const line_width = line_widths[line_index];
+            const line_offset = (total_width - line_width) / 2.0;
+
+            if (!line.invert) {
+                h_cursor = line_offset;
+            } else {
+                h_cursor = total_width - line_offset;
             }
 
-            if (i > 0) {
-                const advance_map = kerning_map.get(text.charCodeAt(i - 1));
-                if (advance_map !== undefined) {
-                    const advance = advance_map.get(text.charCodeAt(i));
-                    if (advance !== undefined) {
-                        h_cursor += em * advance;
+            const text_dir = line.invert ? -1.0 : 1.0;
+            
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                char_count += 1;
+
+                const char_code = char.charCodeAt(0);
+                const glyph = glyph_map.get(char_code);
+                if (!glyph) {
+                    h_cursor += text_dir * em;
+                    continue;
+                }
+
+                if (i > 0) {
+                    const advance_map = kerning_map.get(text.charCodeAt(i - 1));
+                    if (advance_map !== undefined) {
+                        const advance = advance_map.get(text.charCodeAt(i));
+                        if (advance !== undefined) {
+                            h_cursor += text_dir * em * advance;
+                        }
                     }
+                }
+
+                if (!line.invert) {
+                    const x = h_cursor + (em * glyph.planeBounds.left);
+                    const y = v_cursor + (em * glyph.planeBounds.bottom);
+                    const w = ((h_cursor + (em * glyph.planeBounds.right)) - x);
+                    const h = (v_cursor + (em * glyph.planeBounds.top)) - y;
+                    char_rects.push([
+                        x,
+                        y,
+                        w,
+                        h,
+                    ]);
+                } else {
+                    const x = h_cursor - (em * glyph.planeBounds.left);
+                    const y = v_cursor + (em * glyph.planeBounds.bottom);
+                    const w = (h_cursor - (em * glyph.planeBounds.right)) - x;
+                    const h = (v_cursor + (em * glyph.planeBounds.top)) - y;
+                    char_rects.push([
+                        x,
+                        y,
+                        w,
+                        h,
+                    ]);
+                }
+
+                h_cursor += text_dir * em * glyph.advance;
+
+                if (!line.invert) {
+                    glyph_rects.push([
+                        glyph.atlasBounds.left / this.font_atlas.atlas.width,
+                        1.0 - glyph.atlasBounds.bottom / this.font_atlas.atlas.height,
+                        glyph.atlasBounds.right / this.font_atlas.atlas.width,
+                        1.0 - glyph.atlasBounds.top / this.font_atlas.atlas.height,
+                    ]);
+                } else {
+                    glyph_rects.push([
+                        glyph.atlasBounds.left / this.font_atlas.atlas.width,
+                        1.0 - glyph.atlasBounds.top / this.font_atlas.atlas.height,
+                        glyph.atlasBounds.right / this.font_atlas.atlas.width,
+                        1.0 - glyph.atlasBounds.bottom / this.font_atlas.atlas.height
+                    ]);
                 }
             }
 
-            const x = h_cursor + (em * glyph.planeBounds.left);
-            const y = v_cursor + (em * glyph.planeBounds.bottom);
-            const w = (h_cursor + (em * glyph.planeBounds.right)) - x;
-            const h = (v_cursor + (em * glyph.planeBounds.top)) - y;
-            char_rects.push([
-                x,
-                y,
-                w,
-                h,
-            ]);
-
-            h_cursor += em * glyph.advance;
-
-            glyph_rects.push([
-                glyph.atlasBounds.left / this.font_atlas.atlas.width,
-                1.0 - glyph.atlasBounds.bottom / this.font_atlas.atlas.height,
-                glyph.atlasBounds.right / this.font_atlas.atlas.width,
-                1.0 - glyph.atlasBounds.top / this.font_atlas.atlas.height,
-            ]);
+            v_cursor -= em * (1 + this.font_atlas.metrics.lineHeight);
+            h_cursor = 0;
         }
 
         gl.uniform4fv(this.glass_text_program.uniforms.glyph_rects, glyph_rects.flat(), 0, 0);
         gl.uniform4fv(this.glass_text_program.uniforms.char_rects, char_rects.flat(), 0, 0);
-        gl.uniform1i(this.glass_text_program.uniforms.char_count, text.length);
+        gl.uniform1i(this.glass_text_program.uniforms.char_count, char_count);
 
-        gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, text.length);
+        gl.uniform1f(this.glass_text_program.uniforms.time, frame_params.now / 1000.0);
+
+        gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, char_count);
+
+        // for (let i = 0; i < text.length; ++i) {
+        //     gl.uniform4fv(this.glass_text_program.uniforms.glyph_rects, glyph_rects[i], 0, 0);
+        //     gl.uniform4fv(this.glass_text_program.uniforms.char_rects, char_rects[i], 0, 0);
+        //     gl.uniform1i(this.glass_text_program.uniforms.char_count, 1);
+        //     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, 1);
+        // }
+        
 
 
 
@@ -234,6 +326,8 @@ export class GlassText {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.text_framebuffer_tex);
         gl.uniform1i(this.glass_text_program.uniforms.composite_tex, 0);
+
+        
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }

@@ -27,7 +27,7 @@ export interface GraphicsStage {
 export interface DrawQueue {
     particle_field: string[],
     glass_text: {
-        text: string
+        text: {text: string, invert: boolean}[]
     }
 }
 
@@ -92,7 +92,9 @@ export class Graphics {
         const read_index = this.frame_index % 2;
         const write_index = 1 - read_index;
 
-        const eye_pos = vec3.fromValues(2.0, 4.0 * Math.sin(0.1 * now / 1000.0), 2.0 * Math.cos(0.1 * now / 1000.0));
+        const eye_pos = vec3.fromValues(2.0 * Math.sin(0.1 * now / 1000.0), 1.0, 2.0 * Math.cos(0.1 * now / 1000.0));
+        //const eye_pos = vec3.fromValues(16.0 * Math.sin(0.1 * now / 1000.0), 8.0, 16.0 * Math.cos(0.1 * now / 1000.0));
+        //const eye_pos = vec3.fromValues(10.0, 10.0, 10.0);
         //const eye_pos = vec3.fromValues(0.0, 0.0, -10.0);
         const look_pos = vec3.fromValues(0.0, 0.0, 0.0);
         const eye_dir = vec3.sub(vec3.create(), look_pos, eye_pos);
