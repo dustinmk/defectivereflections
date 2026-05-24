@@ -56,10 +56,6 @@ export default function({section_id}: {section_id: number | null}) {
     return <div className="horiz-layout">
         <div className="sidebar">
             <Chooser
-                item_list={SORT_OPTIONS.map(sort => ({name: sort.display, id: sort.id}))}
-                value={sort_method}
-                setItem={v => setSortMethod(v === null ? null : SORT_OPTIONS.find(sort => sort.id === v.id) || null)} />
-            <Chooser
                 item_list={[...doc_store.section_list.values()].map(value => ({name: value.display_name, id: value.id}))}
                 value={filter_section}
                 setItem={v => setFilterSection(v === null ? null : doc_store.section_list.get(v.id) || null)} />
@@ -72,6 +68,10 @@ export default function({section_id}: {section_id: number | null}) {
                 value={filter_status ? {name: filter_status.name, id: filter_status.id} : null}
                 setItem={v => setFilterStatus(v === null ? null : doc_store.status_list.get(v.id) || null)}
             />
+            <Chooser
+                item_list={SORT_OPTIONS.map(sort => ({name: sort.display, id: sort.id}))}
+                value={sort_method}
+                setItem={v => setSortMethod(v === null ? null : SORT_OPTIONS.find(sort => sort.id === v.id) || null)} />
             <div className="document-page">
                 {[...document_groups.entries()].sort((a, b) => {
                     if (a[0] === -1) {

@@ -65,5 +65,8 @@ void main() {
                 vec3(0.8,0.8,0.8),
                 clamp(2.0*length(r.x),0.0,1.0));
 
-    outColor = vec4(color,1.);
+    // float vignette = length(uv - vec2(0.5, 1.0)) / sqrt(2.0);
+    float vignette = 1.0;
+    // vignette = clamp(1.0 * exp(-4.0 * (vignette)), 0.0, 1.0);
+    outColor = vec4(color * 0.7 + (0.3 * color * vignette), 1.0);
 }

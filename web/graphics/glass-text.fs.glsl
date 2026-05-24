@@ -4,14 +4,17 @@ precision highp float;
 
 uniform float dt;
 uniform sampler2D mtsdf_tex;
+uniform sampler2D scene_tex;
 
 uniform vec4 glyph_rects[256];
 uniform vec4 char_rects[256];
 uniform int char_count;
 uniform float time;
+uniform vec2 mouse_pos;
 
 in vec2 uv;
 in vec2 pos;
+in vec2 abs_uv;
 flat in int instanceID;
 layout(location = 0) out vec4 outColor;
 
@@ -26,7 +29,9 @@ float smin(float a, float b, float k) {
 }
 
 float scene(vec3 p) {
-    vec4 sphere = vec4(0.3, 0.3, 0.0, 0.2);
+    //vec4 sphere = vec4(0.1 * sin(time * 0.37), 0.2 * cos(time * 0.21), 0.0, 0.001);
+    vec4 sphere = vec4(mouse_pos.x, mouse_pos.y, 0.0, 0.001);
+
     vec4 sphere1 = vec4(0.7, 0.7, 0.0, 0.2);
     // return smin(
     //     length(p - sphere.xyz) - sphere.w,
@@ -47,9 +52,13 @@ float scene(vec3 p) {
     //float dist = sqrt(1.0 - (1.0 - raw_dist) * (1.0 - raw_dist));
     //float dist = 1.0 - abs(p.z - sin(1.0 - min(0.5, sdf)));
     //float dist = raw_dist;
-    return min(
-        100.0, //length(p.xy - sphere.xy) - sphere.w,
-        dist
+    return smin(
+        8.0 * (length(sphere.xy - abs_uv.xy) - sphere.w),
+        //100.0,
+        dist + 1.0,
+        0.1
+        //0.1
+        //100.0
         //0.1
     );
 }
@@ -80,7 +89,7 @@ void main() {
         glyph_rect.y + (glyph_rect.w - glyph_rect.y) * uv.y);
 
     vec4 sdf_tex = texture(mtsdf_tex, glyph_uv);
-    float dist = median(sdf_tex.r, sdf_tex.g, sdf_tex.b);
+    float dist = 1.0 - median(sdf_tex.r, sdf_tex.g, sdf_tex.b);
     float w = fwidth(dist);
     float opacity = smoothstep(0.5 - w, 0.5 + w, dist);
 
@@ -91,26 +100,28 @@ void main() {
 
     
 
-    vec3 origin = vec3(uv.x, uv.y, -1.0);
+    vec3 origin = vec3(uv.x, uv.y, 0.0);
     vec3 dir = normalize(vec3(0.0, 0.0, 1.0));
 
     float dt = 0.1;
     float t = 0.0;
-    for (int i = 0; i < 20; i++) {
-        vec3 p = origin + dir * t;
+    // for (int i = 0; i < 20; i++) {
+    //     vec3 p = origin + dir * t;
 
-        dt = scene(p);
+    //     dt = scene(p);
 
-        t += dt;
+    //     t += dt;
 
-        if (dt > 10.0 || dt < 0.01) {
-            break;
-        }
-    }
+    //     if (dt > 10.0 || dt < 0.01) {
+    //         break;
+    //     }
+    // }
 
-    float c = 0.4;
+    //dist = smin(length(vec3(uv.x, uv.y, cos(time * 0.2)) - vec3(0.0, 0.0, 0.0)) - 0.1,  dist, 0.1);
+    dist = scene(origin);
+    float c = 0.2;
     float dc = 0.05;
-    float alpha = smoothstep(c - dc, c + dc, dist);
+    float alpha = 1.0 - smoothstep(c - dc, c + dc, dist);
 
     vec3 p = origin + dir * t;
     if ( t < 10.0 ) {
@@ -118,11 +129,25 @@ void main() {
         n = length(n) < 0.9 ? vec3(0.0, 0.0, 1.0) : n;
         vec3 light = normalize(vec3(cos(time), sin(time), -1.0));
         float color = dot(-n, light);
-        outColor = vec4(vec3(color), alpha);
+        //outColor = vec4(vec3(color), alpha);
         vec3 n1 = length(n) < 0.5 ? normalize(vec3(0.0, 0.0, 1.0)) : normalize(n);
         //outColor = length(n1) > 0.5 ? vec4(1.0, 0.0, 0.0, 0.5) : vec4(0.0, 1.0, 0.0, 0.5); //vec4(vec3(length(n)), 1.0);
+        vec3 refracted = refract(dir, -n, 1.0 / 1.5);
+        float mag_r = length(refracted);
+        refracted = normalize(refracted);
+
+        // Simplified ray-plane intercept - only checking flat plane
+        float rt = 4.0 / refracted.z;
+        vec4 sample_pos = texture(scene_tex, abs_uv + vec2(refracted.x * rt, refracted.y * rt));
+        
+        //outColor = vec4(texture(scene_tex, abs_uv).rgb, alpha);
+        outColor = vec4(mag_r * sample_pos.rgb + (1.0 - mag_r) * vec3(1.0, 1.0, 1.0), alpha);
+        //outColor = vec4(t + 2.0, 0.0, 0.0, 1.0 - alpha);
+        //outColor = vec4(dist, 0.0, 0.0, alpha);
+        //outColor = vec4((1.0 - mag_r), 0.0, 0.0, alpha);
+        //outColor = vec4(scene(vec3(uv.x, uv.y, -1.0)) + 2.0, 0.0, 0.0, alpha);
     } else {
-        outColor = vec4(1.0, 0.0, 0.0, 1.0);
+        outColor = vec4(1.0, 1.0, 0.0, 1.0);
     }
 
     // outColor = vec4(checker, checker, checker, opacity);

@@ -11,6 +11,7 @@ vec2 points[4] = vec2[4](
 );
 
 out vec2 uv;
+out vec2 abs_uv;
 out vec2 pos;
 flat out int instanceID;
 
@@ -20,5 +21,6 @@ void main() {
     pos = vec2(((char_rect.xy + (points[gl_VertexID] * vec2(char_rect.z, 2.0 * char_rect.w))) * 2.0) - 1.0);
     gl_Position = vec4(pos, 0.0, 1.0);
     uv = points[gl_VertexID].xy;
+    abs_uv = (pos + 1.0) / 2.0;
     instanceID = gl_InstanceID;
 }

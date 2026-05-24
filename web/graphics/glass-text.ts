@@ -72,13 +72,14 @@ export class GlassText {
     private font_atlas: FontAtlas | null = null;
     private text_framebuffer: WebGLFramebuffer;
     private text_framebuffer_tex: WebGLTexture;
+    private mouse_pos = [0.0, 0.0];
 
     constructor(private readonly gl: WebGL2RenderingContext, viewport: Viewport) {
         this.glass_text_program = createProgram(this.gl, {
             vs_source: glass_text_vs,
             fs_source: glass_text_fs,
             attrib: [],
-            uniform: ["mtsdf_tex", "rect", "glyph_rects", "char_rects", "char_count", "time"]
+            uniform: ["mtsdf_tex", "scene_tex", "rect", "glyph_rects", "char_rects", "char_count", "time", "mouse_pos"]
         });
 
         this.composite_program = createProgram(this.gl, {
@@ -93,6 +94,8 @@ export class GlassText {
 
         this.mtsdf_tex = createPNGTexture(this.gl, "/assets/font.png");
         loadJSONFile("/assets/font.json").then(result => this.font_atlas = result);
+
+        document.body.addEventListener("mousemove", evt => this.mouse_pos = [evt.clientX / document.body.clientWidth, 1.0 - evt.clientY / document.body.clientHeight]);
     }
 
     public frame(frame_params: FrameParams, text_lines: {text: string, invert: boolean}[]) {
@@ -140,6 +143,10 @@ export class GlassText {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.mtsdf_tex);
         gl.uniform1i(this.glass_text_program.uniforms.mtsdf_tex, 0);
+
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, frame_params.scene_texture);
+        gl.uniform1i(this.glass_text_program.uniforms.scene_tex, 1);
 
         const glyph_rects: number[][] = [];
         const char_rects: number[][] = [];
@@ -204,7 +211,7 @@ export class GlassText {
         total_height = (text_lines.length - 1) * (em * (1 + this.font_atlas.metrics.lineHeight));
 
         h_cursor = 0;
-        v_cursor = total_height;
+        v_cursor = 1.0 - total_height - 0.05;
         for (let line_index = 0; line_index < text_lines.length; line_index++) {
             const line = text_lines[line_index];
             const text = line.text;
@@ -212,9 +219,9 @@ export class GlassText {
             const line_offset = (total_width - line_width) / 2.0;
 
             if (!line.invert) {
-                h_cursor = line_offset;
+                h_cursor = line_offset + 0.01;
             } else {
-                h_cursor = total_width - line_offset;
+                h_cursor = total_width - line_offset + 0.01
             }
 
             const text_dir = line.invert ? -1.0 : 1.0;
@@ -292,6 +299,7 @@ export class GlassText {
         gl.uniform1i(this.glass_text_program.uniforms.char_count, char_count);
 
         gl.uniform1f(this.glass_text_program.uniforms.time, frame_params.now / 1000.0);
+        gl.uniform2f(this.glass_text_program.uniforms.mouse_pos, this.mouse_pos[0], this.mouse_pos[1]);
 
         gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, char_count);
 
@@ -325,11 +333,11 @@ export class GlassText {
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, frame_params.scene_texture);
-        gl.uniform1i(this.composite_program.uniforms.composite_tex, 0);
+        gl.uniform1i(this.composite_program.uniforms.scene_tex, 0);
 
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, this.text_framebuffer_tex);
-        gl.uniform1i(this.composite_program.uniforms.scene_tex, 1);
+        gl.uniform1i(this.composite_program.uniforms.composite_tex, 1);
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }

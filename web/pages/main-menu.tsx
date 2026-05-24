@@ -23,7 +23,7 @@ export default function() {
     const [expanded_menu, setExpandedMenu] = React.useState(menu_paths[0].name);
 
     return <ul className="nav-menu">
-        <li><Link to="/">defectivereflections</Link></li>
+        <li><Link to="/"><i className="fa-solid fa-home"></i></Link></li>
         {menu_paths.map(menu => {
             return <MenuItem menu={menu} expand={expanded_menu === menu.name}/>
         })}

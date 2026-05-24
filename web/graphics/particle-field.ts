@@ -5,7 +5,7 @@ import particle_field_fs from "./particle-field.fs.glsl";
 import particle_simulation_vs from "./particle-simulation.vs.glsl";
 import particle_simulation_fs from "./particle-simulation.fs.glsl";
 import { importGLB } from "./glb-import";
-import { FrameParams } from "./graphics";
+import { FrameParams, Viewport } from "./graphics";
 import { create } from "zustand";
 
 // Create rendering pipeline and draw quad to start
@@ -26,29 +26,31 @@ export class ParticleField {
     private anchor_tex: WebGLTexture;
     private velocity_tex: WebGLTexture[];
     private loaded_models: Set<string> = new Set();
+    private mouse_pos = [0.0, 0.0];
+    private particle_count = [512, 512];
 
-    constructor(private readonly gl: WebGL2RenderingContext) {
+    constructor(private readonly gl: WebGL2RenderingContext, viewport: Viewport) {
 
         this.particle_program = createProgram(this.gl, {
             vs_source: particle_field_vs,
             fs_source: particle_field_fs,
             attrib: [],
-            uniform: ["anchor_tex", "position_tex", "velocity_tex", "projection", "perspective"]
+            uniform: ["anchor_tex", "position_tex", "velocity_tex", "projection", "perspective", "time", "particle_count"]
         });
 
         this.simulation_program = createProgram(this.gl, {
             vs_source: particle_simulation_vs,
             fs_source: particle_simulation_fs,
             attrib: [],
-            uniform: ["anchor_tex", "position_tex", "velocity_tex", "dt", "time"]
+            uniform: ["anchor_tex", "position_tex", "velocity_tex", "dt", "time", "meteor_pos", "mouse_anchor_pos"]
         });
 
         this.simulation_framebuffers = [createFramebuffer(this.gl), createFramebuffer(this.gl)];
 
         const position_data: number[][][] = [];
-        for (let y = 0; y < 256; ++y) {
+        for (let y = 0; y < this.particle_count[1]; ++y) {
             const row: number[][] = [];
-            for (let x = 0; x < 256; ++x) {
+            for (let x = 0; x < this.particle_count[0]; ++x) {
                 row.push([5.0 * Math.random() - 2.5, 5.0 * Math.random() - 2.5, 5.0 * Math.random() - 2.5, 1.0]);
             }
             position_data.push(row);
@@ -64,9 +66,9 @@ export class ParticleField {
             [[-1, 0, 0], [0, 1, 1]]
         ]
         const anchor_data: number[][][] = [];
-        for (let y = 0; y < 256; ++y) {
+        for (let y = 0; y < this.particle_count[1]; ++y) {
             const row: number[][] = [];
-            for (let x = 0; x < 256; ++x) {
+            for (let x = 0; x < this.particle_count[0]; ++x) {
                 const face = faces[Math.floor(Math.random() * faces.length)];
                 row.push([
                     face[1][0] * (2.0 * Math.random() - 1.0) + face[0][0],
@@ -79,9 +81,9 @@ export class ParticleField {
         this.anchor_tex = createIndexedStateTexture(this.gl, anchor_data);
 
         const velocity_data: number[][][] = [];
-        for (let y = 0; y < 256; ++y) {
+        for (let y = 0; y < this.particle_count[1]; ++y) {
             const row: number[][] = [];
-            for (let x = 0; x < 256; ++x) {
+            for (let x = 0; x < this.particle_count[0]; ++x) {
                 row.push([0.0, 0.0, 0.0, 1.0]);
             }
             velocity_data.push(row);
@@ -97,6 +99,11 @@ export class ParticleField {
             const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER)
             gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
         }
+
+        document.body.addEventListener("mousemove", evt => this.mouse_pos = [
+            (evt.clientX / document.body.clientWidth * 2.0 - 1.0) * viewport.width / viewport.height,
+            -1.0 * (evt.clientY / document.body.clientHeight * 2.0 - 1.0)
+        ]);
     }
 
     public async loadModel(path: string) {
@@ -139,9 +146,9 @@ export class ParticleField {
         }
 
         const anchor_data: number[][][] = [];
-        for (let y = 0; y < 256; ++y) {
+        for (let y = 0; y < this.particle_count[1]; ++y) {
             const row: number[][] = [];
-            for (let x = 0; x < 256; ++x) {
+            for (let x = 0; x < this.particle_count[0]; ++x) {
                 let face_index = 0;
 
                 let selected_area = Math.random() * total_area;
@@ -184,7 +191,7 @@ export class ParticleField {
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.simulation_framebuffers[frame_params.write_index]);
         
-        gl.viewport(0, 0, 256, 256);
+        gl.viewport(0, 0, this.particle_count[1], this.particle_count[0]);
         gl.disable(gl.BLEND);
         gl.disable(gl.DEPTH_TEST);
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
@@ -204,11 +211,29 @@ export class ParticleField {
         gl.bindTexture(gl.TEXTURE_2D, this.anchor_tex);
         gl.uniform1i(this.simulation_program.uniforms.anchor_tex, 2);
 
+
+
         
         
 
         gl.uniform1f(this.simulation_program.uniforms.dt, frame_params.dt);
-        gl.uniform1f(this.simulation_program.uniforms.time, frame_params.now % 100.0);
+        gl.uniform1f(this.simulation_program.uniforms.time, frame_params.now / 1000.0);
+        const time = 0.1 * (frame_params.now / 1000.0);
+        const meteor_pos = [1.0 * Math.sin(0.24 * time * Math.cos(time)), 0.5 * Math.cos(time * 5.0), 1.0 * Math.cos(0.69 * time * Math.sin(time)), 1.0];
+        gl.uniform3f(this.simulation_program.uniforms.meteor_pos, meteor_pos[0], meteor_pos[1], meteor_pos[2]);
+
+        const inverse_perspective = mat4.invert(mat4.create(), mat4.mul(mat4.create(), frame_params.perspective, frame_params.projection));
+        if (inverse_perspective !== null) {
+            const mouse_ray_start = vec4.transformMat4(vec4.create(), [this.mouse_pos[0], this.mouse_pos[1], 0.0, 1.0], inverse_perspective);
+            const mouse_ray_end = vec4.transformMat4(vec4.create(), [this.mouse_pos[0], this.mouse_pos[1], 10.0, 1.0], inverse_perspective);
+            const mouse_dir = vec3.normalize(vec3.create(), vec3.sub(vec3.create(), mouse_ray_end, mouse_ray_start));
+            const t = -1.0 * mouse_ray_start[1] / mouse_dir[1];
+            const mouse_anchor = [mouse_ray_start[0] + t * mouse_dir[0], 0.1, mouse_ray_start[2] + t * mouse_dir[2]]
+            gl.uniform3f(this.simulation_program.uniforms.mouse_anchor_pos, mouse_anchor[0], mouse_anchor[1], mouse_anchor[2]);
+
+        } else {
+            gl.uniform3f(this.simulation_program.uniforms.mouse_anchor_pos, 0.0, 0.0, 0.0);
+        }
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -240,6 +265,9 @@ export class ParticleField {
         gl.bindTexture(gl.TEXTURE_2D, this.position_tex[frame_params.write_index]);
         gl.uniform1i(this.particle_program.uniforms.position_tex, 0);
 
-        gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, 256 * 256);
+        gl.uniform1f(this.particle_program.uniforms.time, frame_params.now / 1000.0);
+        gl.uniform2f(this.particle_program.uniforms.particle_count, this.particle_count[0], this.particle_count[1]);
+
+        gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, this.particle_count[1] * this.particle_count[0]);
     }
 }

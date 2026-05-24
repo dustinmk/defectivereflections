@@ -3,6 +3,7 @@ import { ParticleField } from "./particle-field";
 import { GlassText } from "./glass-text";
 import { SmokeBackground } from "./smoke-background";
 import { createBlankTexture, createFramebuffer } from "./gl-util";
+import { GlassSphere } from "./glass-sphere";
 
 export interface Viewport {
     width: number;
@@ -45,6 +46,7 @@ export class Graphics {
     private smoke_background: SmokeBackground;
     private scene_framebuffer: WebGLFramebuffer;
     private scene_texture: WebGLTexture;
+    private glass_sphere: GlassSphere;
 
     constructor(private canvas: HTMLCanvasElement) {
         this.last_time = performance.now();
@@ -57,8 +59,9 @@ export class Graphics {
         }
 
         this.smoke_background = new SmokeBackground(this.gl, this.viewport);
-        this.particle_field = new ParticleField(this.gl);
+        this.particle_field = new ParticleField(this.gl, this.viewport);
         this.glass_text = new GlassText(this.gl, this.viewport);
+        this.glass_sphere = new GlassSphere(this.gl, this.viewport);
 
         this.scene_framebuffer = createFramebuffer(this.gl);
         this.scene_texture = createBlankTexture(this.gl, this.viewport.width, this.viewport.height);
@@ -107,7 +110,7 @@ export class Graphics {
         const read_index = this.frame_index % 2;
         const write_index = 1 - read_index;
 
-        const eye_pos = vec3.fromValues(2.0 * Math.sin(0.1 * now / 1000.0), 1.0, 2.0 * Math.cos(0.1 * now / 1000.0));
+        const eye_pos = vec3.fromValues(3.0 * Math.sin(0.1 * now / 1000.0), 1.0, 3.0 * Math.cos(0.1 * now / 1000.0));
         //const eye_pos = vec3.fromValues(16.0 * Math.sin(0.1 * now / 1000.0), 8.0, 16.0 * Math.cos(0.1 * now / 1000.0));
         //const eye_pos = vec3.fromValues(10.0, 10.0, 10.0);
         //const eye_pos = vec3.fromValues(0.0, 0.0, -10.0);
@@ -145,6 +148,7 @@ export class Graphics {
         frame_params.framebuffer = null;
         frame_params.scene_texture = this.scene_texture;
         this.glass_text.frame(frame_params, draw_queue.glass_text.text);
+        this.glass_sphere.frame(frame_params);
 
         this.frame_index += 1;
     }

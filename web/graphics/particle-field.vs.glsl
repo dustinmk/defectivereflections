@@ -3,6 +3,9 @@
 uniform sampler2D position_tex;
 uniform mat4 projection;
 uniform mat4 perspective;
+uniform vec2 particle_count;
+
+uniform float time;
 
 vec4 points[4] = vec4[4](
     vec4(-0.5, 0.5, 0.0, 1.0),
@@ -13,18 +16,23 @@ vec4 points[4] = vec4[4](
 );
 
 out vec2 uv;
+out float instance_offset;
 out vec4 position;
 
 void main() {
-    float row = floor(float(gl_InstanceID) / 256.0);
-    float col = float(gl_InstanceID) - (256.0 * row);
+    instance_offset = float(gl_InstanceID) / (particle_count.x * particle_count.y);
 
-    vec2 index = vec2(col / 256.0, row / 256.0); 
+    float row = floor(float(gl_InstanceID) / particle_count.y);
+    float col = float(gl_InstanceID) - (particle_count.y * row);
+
+    vec2 index = vec2(col / particle_count.x, row / particle_count.y); 
     vec4 position = projection * texture(position_tex, index);
-    vec3 quad_position = points[gl_VertexID].xyz * 0.01;
+    vec3 quad_position = points[gl_VertexID].xyz * (0.007 + 0.007 * instance_offset);
     //gl_Position = projection * vec4(quad_position + anchor.xyz, 1.0);
     gl_Position = perspective * vec4(quad_position + position.xyz, 1.0);
     position = gl_Position;
     //gl_Position = vec4(quad_position, 1.0);
     uv = points[gl_VertexID].xy + 0.5;
+    //instance_offset = (index.x + index.y) / 32.0;
+    
 }
