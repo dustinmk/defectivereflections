@@ -48,7 +48,7 @@ export class Graphics {
     private scene_texture: WebGLTexture;
     private glass_sphere: GlassSphere;
 
-    constructor(private canvas: HTMLCanvasElement) {
+    constructor(private canvas: HTMLCanvasElement, private navigate: (path: string) => void) {
         this.last_time = performance.now();
 
         this.gl = this.configureGl(canvas);
@@ -61,7 +61,7 @@ export class Graphics {
         this.smoke_background = new SmokeBackground(this.gl, this.viewport);
         this.particle_field = new ParticleField(this.gl, this.viewport);
         this.glass_text = new GlassText(this.gl, this.viewport);
-        this.glass_sphere = new GlassSphere(this.gl, this.viewport);
+        this.glass_sphere = new GlassSphere(this.gl, this.viewport, navigate);
 
         this.scene_framebuffer = createFramebuffer(this.gl);
         this.scene_texture = createBlankTexture(this.gl, this.viewport.width, this.viewport.height);

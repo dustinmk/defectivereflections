@@ -1,4 +1,4 @@
-import { mat4, vec4, vec3, mat3 } from "gl-matrix";
+import { mat4, vec4, vec3, mat3, vec2 } from "gl-matrix";
 import { createBlankTexture, createFramebuffer, createIndexedStateTexture, createPNGTexture, createProgram, loadJSONFile, ShaderProgram } from "./gl-util";
 import glass_sphere_vs from "./glass-sphere.vs.glsl";
 import glass_sphere_fs from "./glass-sphere.fs.glsl";
@@ -15,15 +15,28 @@ import { FrameParams, Viewport } from "./graphics";
 
 export class GlassSphere {
     private glass_sphere_program: ShaderProgram;
+    private mouse_pos: number[] = [0.0, 0.0];
 
-    constructor(private readonly gl: WebGL2RenderingContext, viewport: Viewport) {
+    constructor(private readonly gl: WebGL2RenderingContext, viewport: Viewport, navigate: (path: string) => void) {
 
         this.glass_sphere_program = createProgram(this.gl, {
             vs_source: glass_sphere_vs,
             fs_source: glass_sphere_fs,
             attrib: [],
-            uniform: ["quad_size", "scene_tex", "eye_pos", "eye_dir", "projection", "perspective", "resolution"]
+            uniform: ["quad_size", "scene_tex", "eye_pos", "eye_dir", "projection", "perspective", "resolution", "highlight_color"]
         });
+
+        document.body.addEventListener("mousemove", evt => this.mouse_pos = [
+            (evt.clientX / document.body.clientWidth * 2.0 - 1.0) * viewport.width / viewport.height,
+            -1.0 * (evt.clientY / document.body.clientHeight * 2.0 - 1.0)
+        ]);
+
+        document.body.addEventListener("click", evt => {
+            const mouse_range = vec2.length(vec2.sub(vec2.create(), this.mouse_pos, [0.0, 0.0]));
+            if (mouse_range <= 0.1 * viewport.width / viewport.height) {
+                navigate("/articles");
+            }
+        })
     }
 
     public frame(frame_params: FrameParams) {
@@ -66,6 +79,13 @@ export class GlassSphere {
             screen_radius * 2,
             screen_radius * 2 / frame_params.viewport.height * frame_params.viewport.width,
         ];
+
+        const mouse_range = vec2.length(vec2.sub(vec2.create(), this.mouse_pos, [0.0, 0.0]));
+        if (mouse_range <= radius * frame_params.viewport.width / frame_params.viewport.height) {
+            gl.uniform3f(this.glass_sphere_program.uniforms.highlight_color, 0.1, 0.1, 0.1);
+        } else {
+            gl.uniform3f(this.glass_sphere_program.uniforms.highlight_color, 0.0, 0.0, 0.0);
+        }
 
         gl.uniform4f(this.glass_sphere_program.uniforms.quad_size, quad_size[0], quad_size[1], quad_size[2], quad_size[3]);
         gl.uniform2f(this.glass_sphere_program.uniforms.resolution, frame_params.viewport.width, frame_params.viewport.height);

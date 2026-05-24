@@ -9,6 +9,7 @@ uniform mat4 projection;
 uniform mat4 perspective;
 uniform vec4 quad_size;
 uniform vec2 resolution;
+uniform vec3 highlight_color;
 
 in vec2 uv;
 layout(location = 0) out vec4 outColor;
@@ -48,6 +49,7 @@ void main() {
         vec4 scene_sample_b = texture(scene_tex, (screenspace_pos + 1.0) / 2.0 + 0.8 * refract_dir.xy + 0.05);
         vec3 color_glow = 0.2 * vec3(0.9, 0.8, 0.7);
         outColor = vec4(scene_sample_r.r + color_glow.r, scene_sample_g.g + color_glow.g, scene_sample_b.b + color_glow.b, alpha);
+        outColor = vec4(outColor.rgb + highlight_color, outColor.a);
 
     } else {
         

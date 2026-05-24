@@ -1,8 +1,10 @@
 import React from "react";
+import { useNavigate } from "react-router";
 import { Graphics } from "web/graphics/graphics";
 
 
 export default function() {
+    const navigate = useNavigate();
     const graphics_canvas = React.useRef<HTMLCanvasElement>(null);
     const [graphics, setGraphics] = React.useState<Graphics | null>(null);
 
@@ -31,7 +33,7 @@ export default function() {
 
         if (graphics_canvas.current !== null) {
             
-            const graphics = new Graphics(graphics_canvas.current);
+            const graphics = new Graphics(graphics_canvas.current, (path: string) => navigate(path));
             setGraphics(graphics);
 
             // Initiate the loop
