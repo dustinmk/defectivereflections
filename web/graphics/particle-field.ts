@@ -23,7 +23,7 @@ export class ParticleField {
     private simulation_program: ShaderProgram;
     private simulation_framebuffers: WebGLFramebuffer[];
     private position_tex: WebGLTexture[];
-    private anchor_tex: WebGLTexture;
+    private anchor_tex: WebGLTexture | null = null;
     private velocity_tex: WebGLTexture[];
     private loaded_models: Set<string> = new Set();
     private mouse_pos = [0.0, 0.0];
@@ -51,7 +51,7 @@ export class ParticleField {
         for (let y = 0; y < this.particle_count[1]; ++y) {
             const row: number[][] = [];
             for (let x = 0; x < this.particle_count[0]; ++x) {
-                row.push([5.0 * Math.random() - 2.5, 5.0 * Math.random() - 2.5, 5.0 * Math.random() - 2.5, 1.0]);
+                row.push([0.5 * Math.random() - 0.25, 0.5 * Math.random() - 0.25, 0.5 * Math.random() - 0.25, 1.0]);
             }
             position_data.push(row);
         }
@@ -78,7 +78,7 @@ export class ParticleField {
             }
             anchor_data.push(row);
         }
-        this.anchor_tex = createIndexedStateTexture(this.gl, anchor_data);
+        //this.anchor_tex = createIndexedStateTexture(this.gl, anchor_data);
 
         const velocity_data: number[][][] = [];
         for (let y = 0; y < this.particle_count[1]; ++y) {
@@ -184,6 +184,9 @@ export class ParticleField {
     }
 
     public frame(frame_params: FrameParams) {
+        if (this.anchor_tex === null) {
+            return;
+        }
 
         const gl = this.gl;
 

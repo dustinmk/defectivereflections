@@ -26,10 +26,19 @@ export class GlassSphere {
             uniform: ["quad_size", "scene_tex", "eye_pos", "eye_dir", "projection", "perspective", "resolution", "highlight_color"]
         });
 
-        document.body.addEventListener("mousemove", evt => this.mouse_pos = [
-            (evt.clientX / document.body.clientWidth * 2.0 - 1.0) * viewport.width / viewport.height,
-            -1.0 * (evt.clientY / document.body.clientHeight * 2.0 - 1.0)
-        ]);
+        document.body.addEventListener("mousemove", evt => {
+            this.mouse_pos = [
+                (evt.clientX / document.body.clientWidth * 2.0 - 1.0) * viewport.width / viewport.height,
+                -1.0 * (evt.clientY / document.body.clientHeight * 2.0 - 1.0)
+            ];
+
+            const mouse_range = vec2.length(vec2.sub(vec2.create(), this.mouse_pos, [0.0, 0.0]));
+            if (mouse_range <= 0.1 * viewport.width / viewport.height) {
+                document.body.style.cursor = "pointer";
+            } else {
+                document.body.style.cursor = "auto";
+            }
+        });
 
         document.body.addEventListener("click", evt => {
             const mouse_range = vec2.length(vec2.sub(vec2.create(), this.mouse_pos, [0.0, 0.0]));

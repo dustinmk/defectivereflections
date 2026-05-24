@@ -90,7 +90,7 @@ p, span, li, div, button, input, a, img {
             font-weight: 400;
 
             backdrop-filter: blur(10px);
-            box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.75);
+            box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.4);
             border-radius: 2rem;
             padding: 0.5rem;
 
@@ -139,7 +139,7 @@ p, span, li, div, button, input, a, img {
     //background-color: rgba(255,255,255,0.2);
     animation: slideFromTop 0.2s ease-out forwards;
     backdrop-filter: blur(10px);
-    box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.75);
+    box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.4);
     border-radius: 2rem;
 }
 
@@ -246,7 +246,7 @@ p, span, li, div, button, input, a, img {
     background-image: url("/assets/paper.webp");
     background-repeat: repeat;
     background-size: contain;
-    box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.75);
+    box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.4);
     //margin: 1rem;
     margin: 0 1rem;
     border-radius: 1rem;

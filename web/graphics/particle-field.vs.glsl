@@ -16,6 +16,7 @@ vec4 points[4] = vec4[4](
 );
 
 out vec2 uv;
+out float range;
 out float instance_offset;
 out vec4 position;
 
@@ -26,13 +27,15 @@ void main() {
     float col = float(gl_InstanceID) - (particle_count.y * row);
 
     vec2 index = vec2(col / particle_count.x, row / particle_count.y); 
-    vec4 position = projection * texture(position_tex, index);
+    vec4 world_position = texture(position_tex, index);
+    vec4 position = projection * world_position;
     vec3 quad_position = points[gl_VertexID].xyz * (0.007 + 0.007 * instance_offset);
     //gl_Position = projection * vec4(quad_position + anchor.xyz, 1.0);
     gl_Position = perspective * vec4(quad_position + position.xyz, 1.0);
     position = gl_Position;
     //gl_Position = vec4(quad_position, 1.0);
     uv = points[gl_VertexID].xy + 0.5;
+    range = length(world_position.xz);
     //instance_offset = (index.x + index.y) / 32.0;
     
 }

@@ -104,7 +104,7 @@ export class Graphics {
         }
         
         const now = performance.now();
-        const dt = (now - this.last_time) / 1000.0;
+        const dt = Math.max(1.0/30.0, (now - this.last_time) / 1000.0);
         this.last_time = now;
 
         const read_index = this.frame_index % 2;
