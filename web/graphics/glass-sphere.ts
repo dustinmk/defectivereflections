@@ -66,7 +66,8 @@ export class GlassSphere {
         // // gl.clearDepth(1.0);
         // // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        gl.depthMask(false);
+        //gl.depthMask(false);
+        gl.enable(gl.DEPTH_TEST);
         gl.colorMask(true, true, true, true);
         gl.disable(gl.CULL_FACE);
 

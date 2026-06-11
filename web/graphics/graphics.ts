@@ -30,7 +30,7 @@ export interface GraphicsStage {
 }
 
 export interface DrawQueue {
-    particle_field: string[],
+    particle_field: {path: string, scale: vec3, translate: vec3}[],
     glass_text: {
         text: {text: string, invert: boolean}[]
     }
@@ -98,9 +98,7 @@ export class Graphics {
 
     public frame(draw_queue: DrawQueue) {
         if (draw_queue.particle_field !== undefined) {
-            for (const path of draw_queue.particle_field) {
-                this.particle_field.loadModel(path)
-            }
+            this.particle_field.loadModel(draw_queue.particle_field)
         }
         
         const now = performance.now();

@@ -17,7 +17,10 @@ export default function() {
             frame() {
                 if (graphics) {
                     graphics.frame({
-                        particle_field: ["/assets/terrain1.glb"],
+                        particle_field: [
+                            {path: "/assets/terrain1.glb", scale: [1.0, 1.0, 1.0], translate: [0, 0, 0]},
+                            {path: "/assets/tank1.glb", scale: [0.35, 0.35, 0.35], translate: [1.5, 0.2, 0]},
+                        ],
                         glass_text: {
                             text: [{text: "defective", invert: false}, {text: "reflections", invert: true}]
                         }

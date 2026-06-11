@@ -24,6 +24,7 @@ export class ParticleField {
     private simulation_framebuffers: WebGLFramebuffer[];
     private position_tex: WebGLTexture[];
     private anchor_tex: WebGLTexture | null = null;
+    private color_tex: WebGLTexture | null = null;
     private velocity_tex: WebGLTexture[];
     private loaded_models: Set<string> = new Set();
     private mouse_pos = [0.0, 0.0];
@@ -35,7 +36,7 @@ export class ParticleField {
             vs_source: particle_field_vs,
             fs_source: particle_field_fs,
             attrib: [],
-            uniform: ["anchor_tex", "position_tex", "velocity_tex", "projection", "perspective", "time", "particle_count"]
+            uniform: ["anchor_tex", "position_tex", "velocity_tex", "projection", "perspective", "time", "particle_count", "color_tex"]
         });
 
         this.simulation_program = createProgram(this.gl, {
@@ -106,48 +107,66 @@ export class ParticleField {
         ]);
     }
 
-    public async loadModel(path: string) {
-        if (this.loaded_models.has(path)) {
-            return;
-        }
-
-        this.loaded_models.add(path);
-
-        const mesh = await importGLB(path);
-        if (mesh === null) {
-            return;
-        }
+    public async loadModel(models: {path: string, scale: vec3, translate: vec3}[]) {
 
         const face_areas = [];
+        const face_vertices = [];
+        const face_color = [];
         let total_area = 0;
-        for (let index = 0; index < mesh.indices.length; index += 3) {
-            const v0 = mesh.vertices[mesh.indices[index]].position;
-            const v1 = mesh.vertices[mesh.indices[index + 1]].position;
-            const v2 = mesh.vertices[mesh.indices[index + 2]].position;
+        
+        let color = 0;
+        for (const model of models) {
+            if (this.loaded_models.has(model.path)) {
+                return;
+            }
 
-            const x = vec3.sub(vec3.create(), v1, v0);
-            const y = vec3.sub(vec3.create(), v2, v0);
+            this.loaded_models.add(model.path);
 
-            const a = vec3.dist(v0, v1);
-            const b = vec3.dist(v0, v2);
-            const c = vec3.dist(v1, v2);
+            const mesh = await importGLB(model.path);
+            if (mesh === null) {
+                return;
+            }
 
-            const s = 0.5 * (a + b + c);
-            const face_area = Math.sqrt(s * (s - a) * (s - b) * (s - c))
+            const transform = mat4.fromRotationTranslationScale(mat4.create(), [0, 0, 0, 1], model.translate, model.scale);
 
-            // const area_mat = mat3.fromValues(
-            //     x[0], y[0], 1,
-            //     x[1], y[1], 1,
-            //     x[2], y[2], 1
-            // );
-            // const face_area = Math.abs(0.5 * mat3.determinant(area_mat))
-            face_areas.push(face_area);
-            total_area += face_area;
+            for (let index = 0; index < mesh.indices.length; index += 3) {
+                const v0 = vec3.transformMat4(vec3.create(), mesh.vertices[mesh.indices[index]].position, transform);
+                const v1 = vec3.transformMat4(vec3.create(), mesh.vertices[mesh.indices[index + 1]].position, transform);
+                const v2 = vec3.transformMat4(vec3.create(), mesh.vertices[mesh.indices[index + 2]].position, transform);
+
+                face_vertices.push(v0, v1, v2);
+
+                const x = vec3.sub(vec3.create(), v1, v0);
+                const y = vec3.sub(vec3.create(), v2, v0);
+
+                const a = vec3.dist(v0, v1);
+                const b = vec3.dist(v0, v2);
+                const c = vec3.dist(v1, v2);
+
+                const s = 0.5 * (a + b + c);
+                const face_area = Math.sqrt(s * (s - a) * (s - b) * (s - c))
+
+                // const area_mat = mat3.fromValues(
+                //     x[0], y[0], 1,
+                //     x[1], y[1], 1,
+                //     x[2], y[2], 1
+                // );
+                // const face_area = Math.abs(0.5 * mat3.determinant(area_mat))
+                face_areas.push(face_area);
+                face_color.push(color);
+                total_area += face_area;
+            }
+
+            if (color === 0) {
+                color = 1;
+            }
         }
 
         const anchor_data: number[][][] = [];
+        const color_data: number[][][] = [];
         for (let y = 0; y < this.particle_count[1]; ++y) {
             const row: number[][] = [];
+            const color_row: number[][] = [];
             for (let x = 0; x < this.particle_count[0]; ++x) {
                 let face_index = 0;
 
@@ -159,10 +178,9 @@ export class ParticleField {
 
                 let index = 3 * face_index;
 
-                const vertex = mesh.vertices[index];
-                const v0 = mesh.vertices[mesh.indices[index]].position;
-                const v1 = mesh.vertices[mesh.indices[index + 1]].position;
-                const v2 = mesh.vertices[mesh.indices[index + 2]].position;
+                const v0 = face_vertices[index + 0];
+                const v1 = face_vertices[index + 1];
+                const v2 = face_vertices[index + 2];
 
                 const r1 = Math.random();
                 const r2 = Math.random();
@@ -177,10 +195,14 @@ export class ParticleField {
                     p[1],
                     p[2],
                     1.0]);
+                
+                color_row.push([face_color[face_index], 0.0, 0.0, 0.0]);
             }
             anchor_data.push(row);
+            color_data.push(color_row);
         }
         this.anchor_tex = createIndexedStateTexture(this.gl, anchor_data);
+        this.color_tex = createIndexedStateTexture(this.gl, color_data);
     }
 
     public frame(frame_params: FrameParams) {
@@ -196,7 +218,7 @@ export class ParticleField {
         
         gl.viewport(0, 0, this.particle_count[1], this.particle_count[0]);
         gl.disable(gl.BLEND);
-        gl.disable(gl.DEPTH_TEST);
+        gl.enable(gl.DEPTH_TEST);
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
         gl.colorMask(true, true, true, true);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -267,6 +289,10 @@ export class ParticleField {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.position_tex[frame_params.write_index]);
         gl.uniform1i(this.particle_program.uniforms.position_tex, 0);
+
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, this.color_tex);
+        gl.uniform1i(this.particle_program.uniforms.color_tex, 1);
 
         gl.uniform1f(this.particle_program.uniforms.time, frame_params.now / 1000.0);
         gl.uniform2f(this.particle_program.uniforms.particle_count, this.particle_count[0], this.particle_count[1]);
