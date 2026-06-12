@@ -33,11 +33,11 @@ export class GlassSphere {
             ];
 
             const mouse_range = vec2.length(vec2.sub(vec2.create(), this.mouse_pos, [0.0, 0.0]));
-            if (mouse_range <= 0.1 * viewport.width / viewport.height) {
-                document.body.style.cursor = "pointer";
-            } else {
-                document.body.style.cursor = "auto";
-            }
+            // if (mouse_range <= 0.1 * viewport.width / viewport.height) {
+            //     document.body.style.cursor = "pointer";
+            // } else {
+            //     document.body.style.cursor = "auto";
+            // }
         });
 
         document.body.addEventListener("click", evt => {

@@ -1,4 +1,4 @@
-import { mat4, vec4, vec3, mat3 } from "gl-matrix";
+import { mat4, vec4, vec3, mat3, vec2 } from "gl-matrix";
 import { ParticleField } from "./particle-field";
 import { GlassText } from "./glass-text";
 import { SmokeBackground } from "./smoke-background";
@@ -36,9 +36,49 @@ export interface DrawQueue {
     }
 }
 
+export class Camera {
+    public eye_pos = vec3.fromValues(1, 0, 0); 
+    public look_pos = vec3.fromValues(0, 0, 0);
+    public eye_dir = vec3.fromValues(1, 0, 0);
+    public projection = mat4.identity(mat4.create()); 
+    public perspective = mat4.identity(mat4.create()); 
+
+    public constructor(private viewport: Viewport) {
+    }
+
+    public frame(now: number) {
+        now = 0.0;
+        this.eye_pos = vec3.fromValues(3.0 * Math.sin(0.1 * now / 1000.0), 1.0, 3.0 * Math.cos(0.1 * now / 1000.0));
+        this.look_pos = vec3.fromValues(0.0, 0.0, 0.0);
+        this.eye_dir = vec3.sub(vec3.create(), this.look_pos, this.eye_pos);
+        vec3.normalize(this.eye_dir, this.eye_dir);
+        this.projection = mat4.lookAt(mat4.create(), this.eye_pos, this.look_pos, [0, 1, 0]);
+        this.perspective = mat4.perspective(mat4.create(), (0.25 * Math.PI), this.viewport.width / this.viewport.height, 0.01, 100.0);
+        
+    }
+
+    public toWorldRay(screen_ray: vec2) {
+        const transform = mat4.mul(mat4.create(), this.perspective, this.projection);
+        const inv_transform = mat4.invert(mat4.create(), transform);
+        if (inv_transform === null) {
+            throw new Error("Couldn't invert projection matrix");
+        }
+        const near_plane_point = vec3.transformMat4(vec3.create(), vec3.fromValues(screen_ray[0], screen_ray[1], 1.0), inv_transform);
+        const ray_dir = vec3.sub(vec3.create(), near_plane_point, this.eye_pos);
+        vec3.normalize(ray_dir, ray_dir);
+        const ray_start = this.eye_pos;
+
+        console.log(`Screen: ${printVec3([screen_ray[0], screen_ray[1], 0.0])};     Camera pos: ${printVec3(this.eye_pos)};    Camera dir: ${printVec3(this.eye_dir)};   Ray start: ${printVec3(ray_start)};    Ray dir: ${printVec3(ray_dir)}`);
+        return [ray_start, ray_dir] as [vec4, vec4];
+    }
+}
+
+function printVec3(v: vec3) {
+    return `${v[0].toFixed(2)},${v[1].toFixed(2)},${v[2].toFixed(2)}`
+}
 export class Graphics {
     private readonly gl: WebGL2RenderingContext;
-    private viewport: Viewport = {width: 0, height: 0};
+    public viewport: Viewport = {width: 0, height: 0};
     private last_time: number;
     private frame_index = 0;
     private particle_field: ParticleField;
@@ -47,12 +87,14 @@ export class Graphics {
     private scene_framebuffer: WebGLFramebuffer;
     private scene_texture: WebGLTexture;
     private glass_sphere: GlassSphere;
+    public camera: Camera;
 
     constructor(private canvas: HTMLCanvasElement, private navigate: (path: string) => void) {
         this.last_time = performance.now();
 
         this.gl = this.configureGl(canvas);
         this.viewport = this.configureViewport(canvas);
+        this.camera = new Camera(this.viewport);
 
         if (!this.gl.getExtension('EXT_color_buffer_float')) {
             console.error('Rendering to floating point textures is not supported');
@@ -108,22 +150,7 @@ export class Graphics {
         const read_index = this.frame_index % 2;
         const write_index = 1 - read_index;
 
-        const eye_pos = vec3.fromValues(3.0 * Math.sin(0.1 * now / 1000.0), 1.0, 3.0 * Math.cos(0.1 * now / 1000.0));
-        //const eye_pos = vec3.fromValues(16.0 * Math.sin(0.1 * now / 1000.0), 8.0, 16.0 * Math.cos(0.1 * now / 1000.0));
-        //const eye_pos = vec3.fromValues(10.0, 10.0, 10.0);
-        //const eye_pos = vec3.fromValues(0.0, 0.0, -10.0);
-        const look_pos = vec3.fromValues(0.0, 0.0, 0.0);
-        const eye_dir = vec3.sub(vec3.create(), look_pos, eye_pos);
-        const projection = mat4.lookAt(mat4.create(), eye_pos, look_pos, [0, 1, 0]);
-        // const perspective = mat4.ortho(
-        //     mat4.create(),
-        //     -4.0,
-        //     4.0,
-        //     -4.0 * this.viewport.height / this.viewport.width,
-        //     4.0 * this.viewport.height / this.viewport.width,
-        //     -100.0,
-        //     100.0);
-        const perspective = mat4.perspective(mat4.create(), (0.25 * Math.PI), this.viewport.width / this.viewport.height, 0.01, 100.0);
+        this.camera.frame(now);
 
         const frame_params: FrameParams = {
             read_index,
@@ -131,10 +158,10 @@ export class Graphics {
             frame_index: this.frame_index,
             dt,
             now,
-            eye_pos,
-            eye_dir,
-            projection,
-            perspective,
+            eye_pos: this.camera.eye_pos,
+            eye_dir: this.camera.eye_dir,
+            projection: this.camera.projection,
+            perspective: this.camera.perspective,
             viewport: this.viewport,
             framebuffer: this.scene_framebuffer,
             scene_texture: null
@@ -150,4 +177,6 @@ export class Graphics {
 
         this.frame_index += 1;
     }
+
+    
 }
