@@ -28,7 +28,7 @@ export class ParticleField {
     private velocity_tex: WebGLTexture[];
     private loaded_models: Set<string> = new Set();
     private mouse_pos = [0.0, 0.0];
-    private particle_count = [512, 512];
+    private particle_count = [256, 256];
 
     constructor(private readonly gl: WebGL2RenderingContext, viewport: Viewport) {
 
@@ -36,7 +36,7 @@ export class ParticleField {
             vs_source: particle_field_vs,
             fs_source: particle_field_fs,
             attrib: [],
-            uniform: ["anchor_tex", "position_tex", "velocity_tex", "projection", "perspective", "time", "particle_count", "color_tex"]
+            uniform: ["anchor_tex", "position_tex", "velocity_tex", "projection", "perspective", "time", "particle_count", "color_tex", "eye_pos"]
         });
 
         this.simulation_program = createProgram(this.gl, {
@@ -220,6 +220,7 @@ export class ParticleField {
         gl.disable(gl.BLEND);
         gl.enable(gl.DEPTH_TEST);
         gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        gl.depthMask(false);
         gl.colorMask(true, true, true, true);
         gl.clear(gl.COLOR_BUFFER_BIT);
         
@@ -275,11 +276,14 @@ export class ParticleField {
         gl.depthFunc(gl.LEQUAL);
         gl.depthMask(true);
         gl.depthRange(0.0, 1.0);
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        gl.clearDepth(1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         // gl.clearColor(0.75, 0.80, 0.85, 1.0);
-        // gl.clearDepth(1.0);
-        // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        //gl.clearDepth(1.0);
+        //gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-        gl.depthMask(false);
+        gl.depthMask(true);
         gl.colorMask(true, true, true, true);
         gl.disable(gl.CULL_FACE);
 
@@ -296,6 +300,7 @@ export class ParticleField {
 
         gl.uniform1f(this.particle_program.uniforms.time, frame_params.now / 1000.0);
         gl.uniform2f(this.particle_program.uniforms.particle_count, this.particle_count[0], this.particle_count[1]);
+        gl.uniform3f(this.particle_program.uniforms.eye_pos, frame_params.eye_pos[0], frame_params.eye_pos[1], frame_params.eye_pos[2]);
 
         gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, this.particle_count[1] * this.particle_count[0]);
     }

@@ -8,8 +8,8 @@ app.get("/*", (req, res) => {
     res.sendFile(path.resolve(process.cwd(), "./web/index.html"));
 });
 
-app.listen(config.port, async () => {
-    console.log(`Example app listening on port ${config.port}`);
+const server = app.listen(config.port, "0.0.0.0", async () => {
+    console.log(`Example app listening on ${server.address}${config.port}`);
     console.log(`Static root at ${path.resolve(process.cwd(), "./web")}`);
 });
 

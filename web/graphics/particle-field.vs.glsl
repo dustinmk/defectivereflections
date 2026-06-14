@@ -5,6 +5,7 @@ uniform sampler2D color_tex;
 uniform mat4 projection;
 uniform mat4 perspective;
 uniform vec2 particle_count;
+uniform vec3 eye_pos;
 
 uniform float time;
 
@@ -18,6 +19,7 @@ vec4 points[4] = vec4[4](
 
 out vec2 uv;
 out float range;
+out float eye_dist;
 out float instance_offset;
 out vec4 position;
 out vec4 particle_color;
@@ -39,6 +41,7 @@ void main() {
     //gl_Position = vec4(quad_position, 1.0);
     uv = points[gl_VertexID].xy + 0.5;
     range = length(world_position.xz);
+    eye_dist = length(world_position.xyz - eye_pos);
     //instance_offset = (index.x + index.y) / 32.0;
     
 }

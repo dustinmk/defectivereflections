@@ -86,7 +86,7 @@ export class GlassText {
             vs_source: composite_vs,
             fs_source: composite_fs,
             attrib: [],
-            uniform: ["composite_tex", "scene_tex"]
+            uniform: ["composite_tex", "scene_tex", "depth_tex"]
         });
 
         this.text_framebuffer = createFramebuffer(this.gl);
@@ -107,10 +107,10 @@ export class GlassText {
 
         this.glass_text_program.use();
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.text_framebuffer);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.text_framebuffer_tex, 0);
-        const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER)
-        gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+        // gl.bindFramebuffer(gl.FRAMEBUFFER, this.text_framebuffer);
+        // gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.text_framebuffer_tex, 0);
+        // const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER)
+        // gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
 
         gl.viewport(0, 0, frame_params.viewport.width, frame_params.viewport.height);
 
@@ -125,18 +125,7 @@ export class GlassText {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-        const pixel = new Uint8Array(4);
-        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
-        
-        // // gl.disable(gl.CULL_FACE);
 
-        
-
-        
-        
-        
-
-        
 
         gl.uniform4f(this.glass_text_program.uniforms.rect, 0.0, 0.8, 0.2, 0.2);
 
@@ -313,32 +302,36 @@ export class GlassText {
 
 
 
-        this.composite_program.use();
+        // this.composite_program.use();
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, frame_params.framebuffer);
-        gl.viewport(0, 0, frame_params.viewport.width, frame_params.viewport.height);
+        // gl.bindFramebuffer(gl.FRAMEBUFFER, frame_params.framebuffer);
+        // gl.viewport(0, 0, frame_params.viewport.width, frame_params.viewport.height);
 
-        gl.enable(gl.DEPTH_TEST);
-        gl.enable(gl.BLEND);
-        gl.depthFunc(gl.LEQUAL);
-        gl.depthMask(true);
-        gl.depthRange(0.0, 1.0);
-        // // gl.clearColor(0.75, 0.80, 0.85, 1.0);
-        // // gl.clearDepth(1.0);
-        // // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        gl.depthMask(false);
-        gl.colorMask(true, true, true, true);
-        // // gl.disable(gl.CULL_FACE);
+        // gl.enable(gl.DEPTH_TEST);
+        // gl.enable(gl.BLEND);
+        // gl.depthFunc(gl.LEQUAL);
+        // gl.depthMask(true);
+        // gl.depthRange(0.0, 1.0);
+        // // // gl.clearColor(0.75, 0.80, 0.85, 1.0);
+        // // // gl.clearDepth(1.0);
+        // // // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        // gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        // gl.depthMask(false);
+        // gl.colorMask(true, true, true, true);
+        // // // gl.disable(gl.CULL_FACE);
 
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, frame_params.scene_texture);
-        gl.uniform1i(this.composite_program.uniforms.scene_tex, 0);
+        // gl.activeTexture(gl.TEXTURE0);
+        // gl.bindTexture(gl.TEXTURE_2D, frame_params.scene_texture);
+        // gl.uniform1i(this.composite_program.uniforms.scene_tex, 0);
 
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, this.text_framebuffer_tex);
-        gl.uniform1i(this.composite_program.uniforms.composite_tex, 1);
+        // gl.activeTexture(gl.TEXTURE1);
+        // gl.bindTexture(gl.TEXTURE_2D, this.text_framebuffer_tex);
+        // gl.uniform1i(this.composite_program.uniforms.composite_tex, 1);
 
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        // gl.activeTexture(gl.TEXTURE2);
+        // gl.bindTexture(gl.TEXTURE_2D, frame_params.depth_texture);
+        // gl.uniform1i(this.composite_program.uniforms.depth_tex, 2);
+
+        // gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
 }

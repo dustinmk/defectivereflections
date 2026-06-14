@@ -4,12 +4,12 @@ import { useNavigate } from "react-router";
 import { Graphics } from "web/graphics/graphics";
 
 const link_assets = [
-    {link: "/articles", model: "/assets/tank1.glb", scale: 0.35, center: [1.5, 0.2, 0]}
+    {link: "/articles", label: "Games", model: "/assets/tank1.glb", scale: 0.35, center: [1.5, 0.2, 0]}
 ];
 
 class GraphicsBackground {
     private graphics: Graphics;
-    private mouse_pos: number[] = [0.0, 0.0];
+    private mouse_pos: [number, number] = [0.0, 0.0];
     private halt = false;
 
     public constructor(
@@ -62,6 +62,7 @@ class GraphicsBackground {
         }
 
         this.graphics.frame({
+            mouse_pos: this.mouse_pos,
             particle_field: [
                 {path: "/assets/terrain1.glb", scale: [1.0, 1.0, 1.0], translate: [0, 0, 0]},
                 ...link_assets.map(asset => ({
@@ -70,9 +71,29 @@ class GraphicsBackground {
                     translate: asset.center
                 }))
             ],
-            glass_text: {
-                text: [{text: "defective", invert: false}, {text: "reflections", invert: true}]
-            }
+            glass_text: [
+                {
+                    lines: [
+                        {text: "defective", invert: false},
+                        {text: "reflections", invert: true}
+                    ],
+                    em: 0.05,
+                    top_left: [0.01, 0.99]
+                },
+                ...link_assets.map(asset => {
+                    const world_text_bottom = vec3.add(vec3.create(), asset.center, vec3.fromValues(0.0, 0.0, 0.0));
+                    const world_text_top = vec3.add(vec3.create(), world_text_bottom, vec3.fromValues(0.0, 0.05, 0.0));
+                    const bottom_center = this.graphics.camera.toScreenPos(world_text_bottom);
+                    const top_center = this.graphics.camera.toScreenPos(world_text_top);
+                    const em = top_center[1] - bottom_center[1];
+
+                    return {
+                        lines: [{text: asset.label, invert: false}],
+                        em,
+                        bottom_center: [0.5 * (bottom_center[0] + 1.0), 0.5 * (bottom_center[1] + 1.0)]
+                    }
+                })
+            ]
         });
 
         if (!this.halt) {

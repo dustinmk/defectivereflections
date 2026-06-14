@@ -2,8 +2,11 @@ import { mat4, vec4, vec3, mat3, vec2 } from "gl-matrix";
 import { ParticleField } from "./particle-field";
 import { GlassText } from "./glass-text";
 import { SmokeBackground } from "./smoke-background";
-import { createBlankTexture, createFramebuffer } from "./gl-util";
+import { createBlankTexture, createDepthTexture, createFramebuffer } from "./gl-util";
 import { GlassSphere } from "./glass-sphere";
+import { BlendQuad } from "./blend-quad";
+import { BlitQuad } from "./blit-quad";
+import { GlassText2, GlassTextInstance } from "./glass-text2";
 
 export interface Viewport {
     width: number;
@@ -22,7 +25,9 @@ export interface FrameParams {
     perspective: mat4;
     viewport: Viewport;
     framebuffer: WebGLFramebuffer | null;
+    depth_texture: WebGLTexture | null;
     scene_texture: WebGLTexture | null;
+    mouse_pos: [number, number];
 }
 
 export interface GraphicsStage {
@@ -30,10 +35,9 @@ export interface GraphicsStage {
 }
 
 export interface DrawQueue {
+    mouse_pos: [number, number],
     particle_field: {path: string, scale: vec3, translate: vec3}[],
-    glass_text: {
-        text: {text: string, invert: boolean}[]
-    }
+    glass_text: GlassTextInstance[]
 }
 
 export class Camera {
@@ -47,7 +51,7 @@ export class Camera {
     }
 
     public frame(now: number) {
-        now = 0.0;
+        //now = 0.0;
         this.eye_pos = vec3.fromValues(3.0 * Math.sin(0.1 * now / 1000.0), 1.0, 3.0 * Math.cos(0.1 * now / 1000.0));
         this.look_pos = vec3.fromValues(0.0, 0.0, 0.0);
         this.eye_dir = vec3.sub(vec3.create(), this.look_pos, this.eye_pos);
@@ -68,8 +72,12 @@ export class Camera {
         vec3.normalize(ray_dir, ray_dir);
         const ray_start = this.eye_pos;
 
-        console.log(`Screen: ${printVec3([screen_ray[0], screen_ray[1], 0.0])};     Camera pos: ${printVec3(this.eye_pos)};    Camera dir: ${printVec3(this.eye_dir)};   Ray start: ${printVec3(ray_start)};    Ray dir: ${printVec3(ray_dir)}`);
         return [ray_start, ray_dir] as [vec4, vec4];
+    }
+
+    public toScreenPos(world_pos: vec3) {
+        const transform = mat4.mul(mat4.create(), this.perspective, this.projection);
+        return vec3.transformMat4(vec3.create(), world_pos, transform);
     }
 }
 
@@ -83,10 +91,22 @@ export class Graphics {
     private frame_index = 0;
     private particle_field: ParticleField;
     private glass_text: GlassText;
+    private glass_text2: GlassText2;
+    private glass_sphere: GlassSphere;
+    private blend_quad: BlendQuad;
+    private blit_quad: BlitQuad;
     private smoke_background: SmokeBackground;
+
+    private particle_framebuffer: WebGLFramebuffer;
+    private particle_texture: WebGLTexture;
+    private particle_depth: WebGLTexture;
+    private smoke_framebuffer: WebGLFramebuffer;
+    private smoke_texture: WebGLTexture;
     private scene_framebuffer: WebGLFramebuffer;
     private scene_texture: WebGLTexture;
-    private glass_sphere: GlassSphere;
+    private refract_base_framebuffer: WebGLFramebuffer;
+    private refract_base_texture: WebGLTexture;
+    private refract_base_depth: WebGLTexture;
     public camera: Camera;
 
     constructor(private canvas: HTMLCanvasElement, private navigate: (path: string) => void) {
@@ -103,13 +123,81 @@ export class Graphics {
         this.smoke_background = new SmokeBackground(this.gl, this.viewport);
         this.particle_field = new ParticleField(this.gl, this.viewport);
         this.glass_text = new GlassText(this.gl, this.viewport);
+        this.glass_text2 = new GlassText2(this.gl, this.viewport);
         this.glass_sphere = new GlassSphere(this.gl, this.viewport, navigate);
+        this.blend_quad = new BlendQuad(this.gl, this.viewport);
+        this.blit_quad = new BlitQuad(this.gl, this.viewport);
+
+        this.particle_framebuffer = createFramebuffer(this.gl);
+        this.particle_texture = createBlankTexture(this.gl, this.viewport.width, this.viewport.height);
+        this.particle_depth = createDepthTexture(this.gl, this.viewport.width, this.viewport.height);
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.particle_framebuffer);
+        this.gl.framebufferTexture2D(
+            this.gl.FRAMEBUFFER,
+            this.gl.COLOR_ATTACHMENT0,
+            this.gl.TEXTURE_2D,
+            this.particle_texture,
+            0);
+        this.gl.framebufferTexture2D(
+            this.gl.FRAMEBUFFER,
+            this.gl.DEPTH_ATTACHMENT,
+            this.gl.TEXTURE_2D,
+            this.particle_depth,
+            0);
+        this.gl.drawBuffers([this.gl.COLOR_ATTACHMENT0]);
+        if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !== this.gl.FRAMEBUFFER_COMPLETE) {
+            console.error("Framebuffer is not complete");
+        }
+
+        this.smoke_framebuffer = createFramebuffer(this.gl);
+        this.smoke_texture = createBlankTexture(this.gl, this.viewport.width, this.viewport.height);
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.smoke_framebuffer);
+        this.gl.framebufferTexture2D(
+            this.gl.FRAMEBUFFER,
+            this.gl.COLOR_ATTACHMENT0,
+            this.gl.TEXTURE_2D,
+            this.smoke_texture,
+            0);
+        this.gl.drawBuffers([this.gl.COLOR_ATTACHMENT0]);
+        if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !== this.gl.FRAMEBUFFER_COMPLETE) {
+            console.error("Framebuffer is not complete");
+        }
 
         this.scene_framebuffer = createFramebuffer(this.gl);
         this.scene_texture = createBlankTexture(this.gl, this.viewport.width, this.viewport.height);
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.scene_framebuffer);
-        this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_2D, this.scene_texture, 0);
+        this.gl.framebufferTexture2D(
+            this.gl.FRAMEBUFFER,
+            this.gl.COLOR_ATTACHMENT0,
+            this.gl.TEXTURE_2D,
+            this.scene_texture,
+            0);
+        if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !== this.gl.FRAMEBUFFER_COMPLETE) {
+            console.error("Framebuffer is not complete");
+        }
         this.gl.drawBuffers([this.gl.COLOR_ATTACHMENT0]);
+
+        this.refract_base_framebuffer = createFramebuffer(this.gl);
+        this.refract_base_texture = createBlankTexture(this.gl, this.viewport.width, this.viewport.height);
+        this.refract_base_depth = createDepthTexture(this.gl, this.viewport.width, this.viewport.height);
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.refract_base_framebuffer);
+        this.gl.framebufferTexture2D(
+            this.gl.FRAMEBUFFER,
+            this.gl.COLOR_ATTACHMENT0,
+            this.gl.TEXTURE_2D,
+            this.refract_base_texture,
+            0);
+        this.gl.framebufferTexture2D(
+            this.gl.FRAMEBUFFER,
+            this.gl.DEPTH_ATTACHMENT,
+            this.gl.TEXTURE_2D,
+            this.refract_base_depth,
+            0);
+        if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !== this.gl.FRAMEBUFFER_COMPLETE) {
+            console.error("Framebuffer is not complete");
+        }
+        this.gl.drawBuffers([this.gl.COLOR_ATTACHMENT0]);
+
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null);
     }
 
@@ -164,17 +252,37 @@ export class Graphics {
             perspective: this.camera.perspective,
             viewport: this.viewport,
             framebuffer: this.scene_framebuffer,
-            scene_texture: null
+            depth_texture: null,
+            scene_texture: null,
+            mouse_pos: draw_queue.mouse_pos
         }
 
+        frame_params.framebuffer = this.smoke_framebuffer;
         this.smoke_background.frame(frame_params);
+
+        frame_params.framebuffer = this.particle_framebuffer;
         this.particle_field.frame(frame_params);
 
-        frame_params.framebuffer = null;
-        frame_params.scene_texture = this.scene_texture;
-        this.glass_text.frame(frame_params, draw_queue.glass_text.text);
-        this.glass_sphere.frame(frame_params);
+        frame_params.framebuffer = this.scene_framebuffer;// this.scene_framebuffer;
+        this.blend_quad.frame(frame_params, this.smoke_texture, this.particle_texture);
 
+        frame_params.framebuffer = this.refract_base_framebuffer;
+        frame_params.depth_texture = this.particle_depth;
+        frame_params.scene_texture = this.scene_texture;
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.refract_base_framebuffer);
+        this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        this.gl.clearDepth(1.0);
+        this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+        this.blit_quad.frame(frame_params, this.smoke_texture);
+        this.gl.bindFramebuffer(this.gl.READ_FRAMEBUFFER, this.scene_framebuffer);
+        this.gl.bindFramebuffer(this.gl.DRAW_FRAMEBUFFER, null);
+        this.glass_sphere.frame(frame_params);
+        this.blit_quad.frame(frame_params, this.particle_texture, this.particle_depth);
+
+        frame_params.scene_texture = this.refract_base_texture;
+        frame_params.framebuffer = null;
+        this.glass_text2.frame(frame_params, draw_queue.glass_text);
+        
         this.frame_index += 1;
     }
 

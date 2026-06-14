@@ -23,7 +23,7 @@ export class GlassSphere {
             vs_source: glass_sphere_vs,
             fs_source: glass_sphere_fs,
             attrib: [],
-            uniform: ["quad_size", "scene_tex", "eye_pos", "eye_dir", "projection", "perspective", "resolution", "highlight_color"]
+            uniform: ["quad_size", "scene_tex", "depth_tex", "eye_pos", "eye_dir", "projection", "perspective", "inv_transform", "resolution", "highlight_color"]
         });
 
         document.body.addEventListener("mousemove", evt => {
@@ -71,11 +71,23 @@ export class GlassSphere {
         gl.colorMask(true, true, true, true);
         gl.disable(gl.CULL_FACE);
 
+        // gl.activeTexture(gl.TEXTURE0);
+        // gl.bindTexture(gl.TEXTURE_2D, frame_params.scene_texture);
+        // gl.uniform1i(this.glass_sphere_program.uniforms.scene_tex, 0);
+
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, frame_params.scene_texture);
         gl.uniform1i(this.glass_sphere_program.uniforms.scene_tex, 0);
 
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, frame_params.depth_texture);
+        gl.uniform1i(this.glass_sphere_program.uniforms.depth_tex, 1);
+
         const transform = mat4.mul(mat4.create(), frame_params.perspective, frame_params.projection);
+        const inv_transform = mat4.invert(mat4.create(), transform);
+        if (inv_transform === null) {
+            return;
+        }
         const world_center = vec4.fromValues(0, 0, 0, 1);
         const radius = 0.1;
         const center = vec4.transformMat4(vec4.create(), world_center, transform);
@@ -103,6 +115,7 @@ export class GlassSphere {
         gl.uniform3f(this.glass_sphere_program.uniforms.eye_dir, frame_params.eye_dir[0], frame_params.eye_dir[1], frame_params.eye_dir[2]);
         gl.uniformMatrix4fv(this.glass_sphere_program.uniforms.projection, false, frame_params.projection);
         gl.uniformMatrix4fv(this.glass_sphere_program.uniforms.perspective, false, frame_params.perspective);
+        gl.uniformMatrix4fv(this.glass_sphere_program.uniforms.inv_transform, false, inv_transform);
 
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }

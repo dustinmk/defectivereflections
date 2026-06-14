@@ -15,6 +15,6 @@ void main() {
     vec2 point = points[gl_VertexID];
 
     vec2 pos = vec2(quad_size.x + point.x * quad_size.z, quad_size.y + point.y * quad_size.w);
-    gl_Position = vec4(pos, 0.0, 1.0);
+    gl_Position = vec4(pos, 0.9999999, 1.0);
     uv = points[gl_VertexID].xy;
 }
