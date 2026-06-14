@@ -40,7 +40,7 @@ float fbm(vec2 x) {
 }
 
 void main() {
-    vec2 st = 8.0 * uv;
+    vec2 st = 8.0 * 8.0 * uv;
     vec3 color = vec3(0.0);
 
     vec2 q = vec2(0.);

@@ -150,7 +150,7 @@ export class Graphics {
         }
 
         this.smoke_framebuffer = createFramebuffer(this.gl);
-        this.smoke_texture = createBlankTexture(this.gl, this.viewport.width, this.viewport.height);
+        this.smoke_texture = createBlankTexture(this.gl, this.viewport.width / 8.0, this.viewport.height / 8.0);
         this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.smoke_framebuffer);
         this.gl.framebufferTexture2D(
             this.gl.FRAMEBUFFER,

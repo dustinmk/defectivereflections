@@ -41,7 +41,7 @@ export class SmokeBackground {
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
         gl.uniform1f(this.smoke_program.uniforms.time, frame_params.now / 1000.0);
-        gl.uniform2f(this.smoke_program.uniforms.resolution, frame_params.viewport.width, frame_params.viewport.height);
+        gl.uniform2f(this.smoke_program.uniforms.resolution, frame_params.viewport.width / 8.0, frame_params.viewport.height / 8.0);
         
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
