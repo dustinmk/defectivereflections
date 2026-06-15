@@ -28,13 +28,24 @@ class GraphicsBackground {
         });
 
         document.body.addEventListener("click", evt => {
-            const mouse_range = vec2.length(vec2.sub(vec2.create(), this.mouse_pos, [0.0, 0.0]));
-            if (mouse_range <= 0.1 * this.graphics.viewport.width / this.graphics.viewport.height) {
-                navigate("/articles");
+            for (const path of [{link: "/articles", center: [0.0, 0.0, 0.0], scale: 0.3}, ...link_assets]) {
+                if (this.mouseIntersects(path.center, path.scale)) {
+                    navigate(path.link);
+                }
             }
         })
 
         window.requestAnimationFrame(() => this.frame());
+    }
+
+    private mouseIntersects(center: vec3, radius: number) {
+        const [ray_start, ray_dir] = this.graphics.camera.toWorldRay(this.mouse_pos);
+        const a = vec3.dot(ray_dir, ray_dir);
+        const origin_center = vec3.sub(vec3.create(), ray_start, center);
+        const b = 2.0 * vec3.dot(ray_dir, origin_center);
+        const c = vec3.dot(origin_center, origin_center) - radius * radius;
+        const discriminant = b * b - 4.0 * a * c;
+        return discriminant > 0.0;
     }
 
     public frame() {
@@ -42,22 +53,8 @@ class GraphicsBackground {
         let asset_index = 1;
         let highlighted_asset_index: number | null = null;
         for (const asset of link_assets) {
-            
-            const radius = 0.3;
-            const [ray_start, ray_dir] = this.graphics.camera.toWorldRay(this.mouse_pos);
-            const a = vec3.dot(ray_dir, ray_dir);
-            const origin_center = vec3.sub(vec3.create(), ray_start, asset.center);
-            const b = 2.0 * vec3.dot(ray_dir, origin_center);
-            const c = vec3.dot(origin_center, origin_center) - radius * radius;
-            const discriminant = b * b - 4.0 * a * c;
-            if (discriminant > 0.0) {
-                const sqrt_discriminant = Math.sqrt(discriminant);
-                const t0 = (-b + sqrt_discriminant) / (2.0 * a);
-                const t1 = (-b - sqrt_discriminant) / (2.0 * a);
-                const t = t0 < t1 ? t0 : t1;
-                const intersection = vec3.scaleAndAdd(vec3.create(), ray_start, ray_dir, t);
+            if (this.mouseIntersects(asset.center, 0.3)) {
                 intersect = true;
-
                 highlighted_asset_index = asset_index;
             }
 
