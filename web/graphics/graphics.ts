@@ -36,7 +36,7 @@ export interface GraphicsStage {
 
 export interface DrawQueue {
     mouse_pos: [number, number],
-    particle_field: {path: string, scale: vec3, translate: vec3}[],
+    particle_field: {assets: {path: string, scale: vec3, translate: vec3}[], highlighted_asset_index: number | null, mouse_ray: [vec3, vec3]},
     glass_text: GlassTextInstance[]
 }
 
@@ -228,7 +228,7 @@ export class Graphics {
 
     public frame(draw_queue: DrawQueue) {
         if (draw_queue.particle_field !== undefined) {
-            this.particle_field.loadModel(draw_queue.particle_field)
+            this.particle_field.loadModel(draw_queue.particle_field.assets)
         }
         
         const now = performance.now();
@@ -261,7 +261,7 @@ export class Graphics {
         this.smoke_background.frame(frame_params);
 
         frame_params.framebuffer = this.particle_framebuffer;
-        this.particle_field.frame(frame_params);
+        this.particle_field.frame(frame_params, draw_queue.particle_field.highlighted_asset_index, draw_queue.particle_field.mouse_ray);
 
         frame_params.framebuffer = this.scene_framebuffer;// this.scene_framebuffer;
         this.blend_quad.frame(frame_params, this.smoke_texture, this.particle_texture);
@@ -281,7 +281,9 @@ export class Graphics {
 
         frame_params.scene_texture = this.refract_base_texture;
         frame_params.framebuffer = null;
+        this.blit_quad.frame(frame_params, this.refract_base_texture);
         this.glass_text2.frame(frame_params, draw_queue.glass_text);
+        
         
         this.frame_index += 1;
     }

@@ -24,7 +24,6 @@ export class ParticleField {
     private simulation_framebuffers: WebGLFramebuffer[];
     private position_tex: WebGLTexture[];
     private anchor_tex: WebGLTexture | null = null;
-    private color_tex: WebGLTexture | null = null;
     private velocity_tex: WebGLTexture[];
     private loaded_models: Set<string> = new Set();
     private mouse_pos = [0.0, 0.0];
@@ -43,7 +42,7 @@ export class ParticleField {
             vs_source: particle_simulation_vs,
             fs_source: particle_simulation_fs,
             attrib: [],
-            uniform: ["anchor_tex", "position_tex", "velocity_tex", "dt", "time", "meteor_pos", "mouse_anchor_pos"]
+            uniform: ["anchor_tex", "position_tex", "anchor_tex", "velocity_tex", "dt", "time", "meteor_pos", "mouse_anchor_pos", "highlight_index"]
         });
 
         this.simulation_framebuffers = [createFramebuffer(this.gl), createFramebuffer(this.gl)];
@@ -157,16 +156,12 @@ export class ParticleField {
                 total_area += face_area;
             }
 
-            if (color === 0) {
-                color = 1;
-            }
+            color += 1;
         }
 
         const anchor_data: number[][][] = [];
-        const color_data: number[][][] = [];
         for (let y = 0; y < this.particle_count[1]; ++y) {
             const row: number[][] = [];
-            const color_row: number[][] = [];
             for (let x = 0; x < this.particle_count[0]; ++x) {
                 let face_index = 0;
 
@@ -194,18 +189,14 @@ export class ParticleField {
                     p[0],
                     p[1],
                     p[2],
-                    1.0]);
-                
-                color_row.push([face_color[face_index], 0.0, 0.0, 0.0]);
+                    face_color[face_index]]);
             }
             anchor_data.push(row);
-            color_data.push(color_row);
         }
         this.anchor_tex = createIndexedStateTexture(this.gl, anchor_data);
-        this.color_tex = createIndexedStateTexture(this.gl, color_data);
     }
 
-    public frame(frame_params: FrameParams) {
+    public frame(frame_params: FrameParams, highlighted_asset_index: number | null, [mouse_ray_start, mouse_ray_dir]: [vec3, vec3]) {
         if (this.anchor_tex === null) {
             return;
         }
@@ -237,11 +228,7 @@ export class ParticleField {
         gl.bindTexture(gl.TEXTURE_2D, this.anchor_tex);
         gl.uniform1i(this.simulation_program.uniforms.anchor_tex, 2);
 
-
-
-        
-        
-
+        gl.uniform1f(this.simulation_program.uniforms.highlight_index, highlighted_asset_index !== null ? highlighted_asset_index : -1.0);
         gl.uniform1f(this.simulation_program.uniforms.dt, frame_params.dt);
         gl.uniform1f(this.simulation_program.uniforms.time, frame_params.now / 1000.0);
         const time = 0.1 * (frame_params.now / 1000.0);
@@ -250,11 +237,11 @@ export class ParticleField {
 
         const inverse_perspective = mat4.invert(mat4.create(), mat4.mul(mat4.create(), frame_params.perspective, frame_params.projection));
         if (inverse_perspective !== null) {
-            const mouse_ray_start = vec4.transformMat4(vec4.create(), [this.mouse_pos[0], this.mouse_pos[1], 0.0, 1.0], inverse_perspective);
-            const mouse_ray_end = vec4.transformMat4(vec4.create(), [this.mouse_pos[0], this.mouse_pos[1], 10.0, 1.0], inverse_perspective);
-            const mouse_dir = vec3.normalize(vec3.create(), vec3.sub(vec3.create(), mouse_ray_end, mouse_ray_start));
-            const t = -1.0 * mouse_ray_start[1] / mouse_dir[1];
-            const mouse_anchor = [mouse_ray_start[0] + t * mouse_dir[0], 0.1, mouse_ray_start[2] + t * mouse_dir[2]]
+            // const mouse_ray_start = vec4.transformMat4(vec4.create(), [this.mouse_pos[0], this.mouse_pos[1], 0.0, 1.0], inverse_perspective);
+            // const mouse_ray_end = vec4.transformMat4(vec4.create(), [this.mouse_pos[0], this.mouse_pos[1], 10.0, 1.0], inverse_perspective);
+            // const mouse_dir = vec3.normalize(vec3.create(), vec3.sub(vec3.create(), mouse_ray_end, mouse_ray_start));
+            const t = -1.0 * mouse_ray_start[1] / mouse_ray_dir[1];
+            const mouse_anchor = [mouse_ray_start[0] + t * mouse_ray_dir[0], 0.1, mouse_ray_start[2] + t * mouse_ray_dir[2]]
             gl.uniform3f(this.simulation_program.uniforms.mouse_anchor_pos, mouse_anchor[0], mouse_anchor[1], mouse_anchor[2]);
 
         } else {
@@ -295,8 +282,8 @@ export class ParticleField {
         gl.uniform1i(this.particle_program.uniforms.position_tex, 0);
 
         gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, this.color_tex);
-        gl.uniform1i(this.particle_program.uniforms.color_tex, 1);
+        gl.bindTexture(gl.TEXTURE_2D, this.anchor_tex);
+        gl.uniform1i(this.particle_program.uniforms.anchor_tex, 1);
 
         gl.uniform1f(this.particle_program.uniforms.time, frame_params.now / 1000.0);
         gl.uniform2f(this.particle_program.uniforms.particle_count, this.particle_count[0], this.particle_count[1]);

@@ -9,7 +9,7 @@ in vec4 position;
 in float eye_dist;
 in float instance_offset;
 in float range;
-in vec4 particle_color;
+in float particle_color;
 out vec4 outColor;
 
 vec3 mix_color_0[2] = vec3[2](
@@ -28,7 +28,7 @@ void main() {
     float depth_factor = 0.5 * clamp(10.0 - eye_dist, 5.0, 10.0); //(1.0 / (1.0 + eye_dist));
     float luminance = sdf_distance * sdf_distance * depth_factor;
     luminance = 0.5 * tanh(4.0 * (luminance - 0.3));        // Heaviside step function
-    int mix_color_index = particle_color.x < 0.5 ? 0 : 1;
+    int mix_color_index = particle_color < 0.5 ? 0 : 1;
     vec3 color_0 = mix_color_0[mix_color_index];
     vec3 color_1 = mix_color_1[mix_color_index];
     vec3 color = vec3(luminance * mix(color_0, color_1, cos(5.0 * (time + 3.14 * 2.0 * instance_offset))));

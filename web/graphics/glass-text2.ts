@@ -86,20 +86,22 @@ export class GlassText2 {
     private sdf_framebuffer_tex: WebGLTexture;
     private sdf_framebuffer_depth: WebGLTexture;
     private mouse_pos = [0.0, 0.0];
+    private sphere_pos = [0.0, 0.0];
+    private sphere_velocity = [0.1, 0.1];
 
     constructor(private readonly gl: WebGL2RenderingContext, viewport: Viewport) {
         this.glass_text_program = createProgram(this.gl, {
             vs_source: glass_text_vs,
             fs_source: glass_text_fs,
             attrib: [],
-            uniform: ["mtsdf_tex", "scene_tex", "rect", "glyph_rects", "char_rects", "char_count", "time", "mouse_pos", "resolution"]
+            uniform: ["mtsdf_tex", "scene_tex", "rect", "glyph_rects", "char_rects", "text_rects", "char_count", "time", "mouse_pos", "resolution"]
         });
 
         this.sdf_composite_program = createProgram(this.gl, {
             vs_source: sdf_composite_vs,
             fs_source: sdf_composite_fs,
             attrib: [],
-            uniform: ["mtsdf_tex", "scene_tex", "rect", "glyph_rects", "char_rects", "char_count", "time", "mouse_pos"]
+            uniform: ["mtsdf_tex", "scene_tex", "rect", "glyph_rects", "char_rects", "text_rects", "char_count", "time", "mouse_pos"]
         });
 
         this.sdf_framebuffer = createFramebuffer(this.gl);
@@ -133,7 +135,7 @@ export class GlassText2 {
     
         const gl = this.gl;
 
-        const {glyph_rects, char_rects, char_count} = this.computeText(text_instances);
+        const {glyph_rects, char_rects, text_rects, char_count} = this.computeText(text_instances);
 
         this.sdf_composite_program.use();
 
@@ -157,6 +159,7 @@ export class GlassText2 {
         gl.bindTexture(gl.TEXTURE_2D, this.mtsdf_tex);
         gl.uniform1i(this.sdf_composite_program.uniforms.mtsdf_tex, 0);
         
+        gl.uniform1f(this.sdf_composite_program.uniforms.time, frame_params.now / 1000.0);
         gl.uniform4fv(this.sdf_composite_program.uniforms.glyph_rects, glyph_rects.flat(), 0, 0);
         gl.uniform4fv(this.sdf_composite_program.uniforms.char_rects, char_rects.flat(), 0, 0);     
 
@@ -191,24 +194,53 @@ export class GlassText2 {
         gl.bindTexture(gl.TEXTURE_2D, frame_params.depth_texture);
         gl.uniform1i(this.glass_text_program.uniforms.depth_tex, 2);
 
-        gl.uniform2f(this.glass_text_program.uniforms.mouse_pos, frame_params.mouse_pos[0], frame_params.mouse_pos[1]);
+        vec2.scaleAndAdd(this.sphere_pos, this.sphere_pos, this.sphere_velocity, frame_params.dt);
+        if (this.sphere_pos[0] > 1.0)
+            this.sphere_velocity[0] *= -1.0;
+        if (this.sphere_pos[1] > 1.0)
+            this.sphere_velocity[1] *= -1.0
+        if (this.sphere_pos[0] < -1.0)
+            this.sphere_velocity[0] *= -1.0
+        if (this.sphere_pos[1] < -1.0)
+            this.sphere_velocity[1] *= -1.0
+
+        const sphere_dist = vec2.dist(this.sphere_pos, [2.0 * this.mouse_pos[0] - 1.0, 2.0 * this.mouse_pos[1] - 1.0]);
+        
+        const sphere_dir = vec2.sub(vec2.create(), this.sphere_pos, [2.0 * this.mouse_pos[0] - 1.0, 2.0 * this.mouse_pos[1] - 1.0]);
+        vec2.normalize(sphere_dir, sphere_dir);
+        vec2.scaleAndAdd(this.sphere_velocity, this.sphere_velocity, sphere_dir, Math.min(0.003, Math.max(-0.003, -0.003 * sphere_dist * sphere_dist)))
+        vec2.scaleAndAdd(this.sphere_velocity, this.sphere_velocity, this.sphere_velocity, -0.001)
+        this.sphere_velocity = [Math.min(0.1, Math.max(-0.1, this.sphere_velocity[0])), Math.min(0.1, Math.max(-0.1, this.sphere_velocity[1]))]
+        text_rects.push([0.5 * (1.0 + this.sphere_pos[0] - 0.05), 0.5 * (1.0 + this.sphere_pos[1] - (0.05 * frame_params.viewport.width / frame_params.viewport.height)), 0.1 , 0.1 * frame_params.viewport.width / frame_params.viewport.height]);
+        
+        gl.uniform4fv(this.glass_text_program.uniforms.text_rects, text_rects.flat(), 0, 0);
+
+        
+        gl.uniform2f(this.glass_text_program.uniforms.mouse_pos, this.sphere_pos[0], this.sphere_pos[1]);
         gl.uniform1f(this.glass_text_program.uniforms.time, frame_params.now / 1000.0);
         gl.uniform2f(this.glass_text_program.uniforms.resolution, frame_params.viewport.width, frame_params.viewport.height);
 
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, text_rects.length);
     }
 
-    private computeText(text_instances: GlassTextInstance[]): {glyph_rects: number[][], char_rects: number[][], char_count: number} {
+    private computeText(text_instances: GlassTextInstance[]): {
+        glyph_rects: number[][],
+        char_rects: number[][],
+        text_rects: number[][],
+        char_count: number
+    } {
         if (!this.font_atlas) {
             return {
                 glyph_rects: [],
                 char_rects: [],
+                text_rects: [],
                 char_count: 0
             }
         }
 
         const glyph_rects: number[][] = [];
         const char_rects: number[][] = [];
+        const text_rects: number[][] = [];
         let max_height: number = 0;
 
         const glyph_map = new Map<number, Glyph>();
@@ -287,9 +319,10 @@ export class GlassText2 {
                 ];
             }
 
+            text_rects.push([top_left[0] - 0.005, top_left[1] - total_height - 0.005, total_width + 0.01, total_height + 0.01]);
+
             h_cursor = top_left[0];
             v_cursor = top_left[1] - em * max_height * (1 + this.font_atlas.metrics.lineHeight);
-            console.log(`${text_lines[0].text} POS: ${h_cursor} ${v_cursor}`)
             for (let line_index = 0; line_index < text_lines.length; line_index++) {
                 const line = text_lines[line_index];
                 const text = line.text;
@@ -376,6 +409,7 @@ export class GlassText2 {
         return {
             glyph_rects,
             char_rects,
+            text_rects,
             char_count
         }
     }

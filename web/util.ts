@@ -44,7 +44,7 @@ export function flattenBitmapData(data: number[][][]) {
             output.push(point[0]);
             output.push(point[1]);
             output.push(point[2]);
-            output.push(1.0);
+            output.push(point[3]);
         }
     }
     return output;

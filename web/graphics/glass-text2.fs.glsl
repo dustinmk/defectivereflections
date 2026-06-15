@@ -65,7 +65,8 @@ vec3 getNormal(vec3 p) {
 }
 
 void main() {
-    vec4 sdf = texture(sdf_tex, uv);
+    vec2 base_uv = uv;
+    vec4 sdf = texture(sdf_tex, base_uv);
     float depth = 0.1;
     float text_depth = 0.1;
 
@@ -74,7 +75,7 @@ void main() {
     float alpha = smoothstep(c - dc, c + dc, sdf.r);
 
     vec3 dir = normalize(vec3(0.0, 0.0, 1.0));
-    vec3 p = vec3(uv, 0.0);
+    vec3 p = vec3(base_uv, 0.0);
     vec3 n = getNormal(p);
 
    // n = length(n) < 0.9 ? vec3(0.0, 0.0, 1.0) : n;
@@ -89,7 +90,7 @@ void main() {
     // Simplified ray-plane intercept - only checking flat plane
     float rt = clamp(0.2 / refracted.z, 0.0, 1.0);
     vec2 offset = clamp(refracted.xy * rt, -1.0, 1.0);
-    vec2 sample_coord = uv + offset;
+    vec2 sample_coord = base_uv + offset;
     vec4 sample_pos = texture(scene_tex, sample_coord);
 
     // outColor = vec4(mag_r * sample_pos.rgb + (1.0 - mag_r) * vec3(1.0, 1.0, 1.0), 1.0);
@@ -98,7 +99,10 @@ void main() {
     // outColor = vec4(mag_r, 0.0, 0.0, 1.0);
     
     //outColor = vec4(offset, 0.0, 1.0);
-    outColor = vec4(mix(sample_pos.rgb, vec3(1.0, 1.0, 1.0), color), 1.0);
+    outColor = vec4(mix(sample_pos.rgb, vec3(1.0, 1.0, 1.0), color), sample_pos.a);
+    //outColor = vec4(sample_pos.rgb, 1.0);
+    //outColor = texture(scene_tex, uv);
     // outColor = vec4(sample_pos.rgb, 1.0);
     // outColor = vec4(color, 0.0, 0.0, 1.0);
+    //outColor = vec4(1.0, 0.0, 0.0, 1.0);
 }

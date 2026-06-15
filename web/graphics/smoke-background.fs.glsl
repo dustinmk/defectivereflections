@@ -69,4 +69,5 @@ void main() {
     float vignette = 1.0;
     // vignette = clamp(1.0 * exp(-4.0 * (vignette)), 0.0, 1.0);
     outColor = vec4(color * 0.7 + (0.3 * color * vignette), 1.0);
+    //outColor = vec4(1.0 * abs(noise(1000.0 * uv)), 0.0, 0.0, 1.0);
 }

@@ -11,6 +11,8 @@ class GraphicsBackground {
     private graphics: Graphics;
     private mouse_pos: [number, number] = [0.0, 0.0];
     private halt = false;
+    private current_logo_text = ["defective", "reflections"];
+    private base_logo_text = ["defective", "reflections"];
 
     public constructor(
         private canvas: HTMLCanvasElement,
@@ -37,7 +39,10 @@ class GraphicsBackground {
 
     public frame() {
         let intersect: boolean = false;
+        let asset_index = 1;
+        let highlighted_asset_index: number | null = null;
         for (const asset of link_assets) {
+            
             const radius = 0.3;
             const [ray_start, ray_dir] = this.graphics.camera.toWorldRay(this.mouse_pos);
             const a = vec3.dot(ray_dir, ray_dir);
@@ -52,7 +57,11 @@ class GraphicsBackground {
                 const t = t0 < t1 ? t0 : t1;
                 const intersection = vec3.scaleAndAdd(vec3.create(), ray_start, ray_dir, t);
                 intersect = true;
+
+                highlighted_asset_index = asset_index;
             }
+
+            asset_index += 1;
         }
 
         if (intersect) {
@@ -61,21 +70,36 @@ class GraphicsBackground {
             document.body.style.cursor = "auto";
         }
 
+        const now = performance.now() / 1000.0;
+        if (Math.floor(now) % 4.0 === 0.0) {
+            if (this.current_logo_text[0] === this.base_logo_text[0] && this.current_logo_text[1] === this.base_logo_text[1]) {
+                const line_index = Math.floor(Math.random() * 1.99999);
+                const letter_index = Math.floor(Math.random() * this.base_logo_text[line_index].length - 0.0000001);
+                this.current_logo_text[line_index] = this.base_logo_text[line_index].slice(0, letter_index) + this.base_logo_text[line_index].slice(letter_index + 1, this.base_logo_text[line_index].length);
+            }
+        } else {
+            this.current_logo_text = [...this.base_logo_text]
+        }
+
         this.graphics.frame({
             mouse_pos: this.mouse_pos,
-            particle_field: [
-                {path: "/assets/terrain1.glb", scale: [1.0, 1.0, 1.0], translate: [0, 0, 0]},
-                ...link_assets.map(asset => ({
-                    path: asset.model,
-                    scale: [asset.scale, asset.scale, asset.scale],
-                    translate: asset.center
-                }))
-            ],
+            particle_field: {
+                assets: [
+                    {path: "/assets/terrain1.glb", scale: [1.0, 1.0, 1.0], translate: [0, 0, 0]},
+                    ...link_assets.map(asset => ({
+                        path: asset.model,
+                        scale: [asset.scale, asset.scale, asset.scale],
+                        translate: asset.center
+                    }))
+                ],
+                highlighted_asset_index,
+                mouse_ray: this.graphics.camera.toWorldRay(this.mouse_pos)
+            },
             glass_text: [
                 {
                     lines: [
-                        {text: "defective", invert: false},
-                        {text: "reflections", invert: true}
+                        {text: this.current_logo_text[0], invert: false},
+                        {text: this.current_logo_text[1], invert: true}
                     ],
                     em: 0.05,
                     top_left: [0.01, 0.99]

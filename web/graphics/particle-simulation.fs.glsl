@@ -9,6 +9,7 @@ uniform sampler2D velocity_tex;
 uniform sampler2D anchor_tex;
 uniform vec3 meteor_pos;
 uniform vec3 mouse_anchor_pos;
+uniform float highlight_index;
 
 in vec2 uv;
 layout(location = 0) out vec4 outPosition;
@@ -26,11 +27,15 @@ void main() {
     vec4 velocity = texture(velocity_tex, uv);
     vec4 anchor = texture(anchor_tex, uv);
 
+    vec4 offset = abs(anchor.a - highlight_index) < 0.001 ? vec4(0.0, 0.1, 0.0, 0.0) : vec4(0.0, 0.0, 0.0, 0.0);
+    anchor += offset;
+    float added_noise = abs(anchor.a - highlight_index) < 0.001 ? 20.0 : 1.0;
+
     vec3 dir = normalize(anchor.xyz - position.xyz);
     float dist = length(position.xyz - anchor.xyz);
     vec3 anchor_force = (10.0 * dist * dir) - (6.0 * velocity.xyz);
     vec2 seed = uv + time;
-    vec4 noise_force = 0.1 * exp(vec4(random(seed), random(seed + 1.0), random(seed + 2.0), 2.0) - 0.5) - 1.0;
+    vec4 noise_force = (added_noise * 0.1) * exp(vec4(random(seed), random(seed + 1.0), random(seed + 2.0), 2.0) - 0.5) - 1.0;
     vec4 meteor_force = vec4(0.02 * clamp(exp(1.0 / length(position.xyz - meteor_pos.xyz)), -100.0, 100.0) * normalize(meteor_pos.xyz - position.xyz), 0.0);
     vec4 mouse_force = vec4(2.0 * clamp(exp(1.0 / length(position.xyz - mouse_anchor_pos.xyz)), -1.0, 1.0) * normalize(mouse_anchor_pos.xyz - position.xyz), 0.0);
     vec4 sphere_force = vec4(-1.0 * clamp(exp(1.0 / length(position.xyz - vec3(0.0, 0.0, 0.0))), -100.0, 100.0) * normalize(vec3(0.0, 0.0, 0.0) - position.xyz), 1.0);
