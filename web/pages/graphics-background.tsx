@@ -176,6 +176,11 @@ class GraphicsBackground {
             window.requestAnimationFrame(() => this.frame());
         }
     }
+
+    public doHalt() {
+        this.halt = true;
+        pause = true;
+    }
 }
 
 export default function() {
