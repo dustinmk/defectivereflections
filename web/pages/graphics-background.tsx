@@ -7,7 +7,8 @@ const link_assets = [
     {link: "/articles", label: "Games", model: "/assets/tank.glb", scale: 0.35, center: [1.5, 0.2, 0]},
     {link: "/articles", label: "Music", model: "/assets/piano.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
     {link: "/articles", label: "Poetry", model: "/assets/scroll.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
-    {link: "/articles", label: "Research", model: "/assets/books.glb", scale: 0.35, center: [0.2, 0.2, 1.5]}
+    {link: "/articles", label: "Research", model: "/assets/books.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
+    {link: "/articles", label: "Computer", model: "/assets/computer.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
 ];
 
 for (let i = 0; i < link_assets.length; i++) {

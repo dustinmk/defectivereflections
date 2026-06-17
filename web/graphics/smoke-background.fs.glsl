@@ -53,13 +53,26 @@ void main() {
 
     float f = fbm(st+r);
 
-    color = mix(vec3(0.9,0.5,0.9),
-                vec3(0.8,0.5,0.5),
-                clamp((f*f)*4.0,0.0,1.0));
+    // color = mix(vec3(0.9,0.5,0.9),
+    //             vec3(0.8,0.5,0.5),
+    //             clamp((f*f)*4.0,0.0,1.0));
+
+    // color = mix(color,
+    //             vec3(0.5,0.5,0.9),
+    //             clamp(3.0*length(q),0.0,1.0));
+
+    // color = mix(color,
+    //             vec3(0.8,0.8,0.8),
+    //             clamp(2.0*length(r.x),0.0,1.0));
+
+
+    color = mix(vec3(0.2,0.2,0.25),
+                vec3(0.3,0.3,0.4),
+                clamp((f*f)*6.0,0.0,1.0));
 
     color = mix(color,
-                vec3(0.5,0.5,0.9),
-                clamp(3.0*length(q),0.0,1.0));
+                vec3(0.45,0.4,0.6),
+                clamp(2.0*length(q),0.0,1.0));
 
     color = mix(color,
                 vec3(0.8,0.8,0.8),

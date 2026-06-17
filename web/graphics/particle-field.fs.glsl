@@ -14,13 +14,13 @@ in vec4 normal;
 out vec4 outColor;
 
 vec3 mix_color_0[2] = vec3[2](
-    vec3(1.0, 0.9, 0.7),
-    vec3(0.0, 0.1, 0.7)
+    vec3(0.7, 0.7, 0.9),
+    vec3(0.2, 0.3, 0.7)
 );
 
 vec3 mix_color_1[2] = vec3[2](
-    vec3(0.9, 0.3, 0.8),
-    vec3(0.1, 0.4, 0.9)
+    vec3(0.4, 0.4, 0.8),
+    vec3(0.3, 0.5, 0.9)
 );
 
 void main() {
