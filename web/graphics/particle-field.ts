@@ -26,10 +26,9 @@ export class ParticleField {
     private anchor_tex: WebGLTexture | null = null;
     private velocity_tex: WebGLTexture[];
     private loaded_models: Set<string> = new Set();
-    private mouse_pos = [0.0, 0.0];
     private particle_count = [256, 256];
 
-    constructor(private readonly gl: WebGL2RenderingContext, viewport: Viewport) {
+    constructor(private readonly gl: WebGL2RenderingContext) {
 
         this.particle_program = createProgram(this.gl, {
             vs_source: particle_field_vs,
@@ -99,11 +98,6 @@ export class ParticleField {
             const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER)
             gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
         }
-
-        document.body.addEventListener("mousemove", evt => this.mouse_pos = [
-            (evt.clientX / document.body.clientWidth * 2.0 - 1.0) * viewport.width / viewport.height,
-            -1.0 * (evt.clientY / document.body.clientHeight * 2.0 - 1.0)
-        ]);
     }
 
     public async loadModel(models: {path: string, scale: vec3, translate: vec3}[]) {

@@ -10,7 +10,7 @@ export class SmokeBackground {
     private smoke_program: ShaderProgram;
     //private noise_tex: WebGLTexture;
 
-    constructor(private readonly gl: WebGL2RenderingContext, viewport: Viewport) {
+    constructor(private readonly gl: WebGL2RenderingContext) {
         this.smoke_program = createProgram(this.gl, {
             vs_source: smoke_background_vs,
             fs_source: smoke_background_fs,

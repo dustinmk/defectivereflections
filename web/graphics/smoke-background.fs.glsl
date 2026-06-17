@@ -68,6 +68,6 @@ void main() {
     // float vignette = length(uv - vec2(0.5, 1.0)) / sqrt(2.0);
     float vignette = 1.0;
     // vignette = clamp(1.0 * exp(-4.0 * (vignette)), 0.0, 1.0);
-    outColor = vec4(color * 0.7 + (0.3 * color * vignette), 1.0);
+    outColor = vec4(color * 0.7 + (0.3 * color * vignette), 1.0) + 0.1 * cos(0.2 * time) * cos(0.2 * 0.71 * time) * cos(0.2 * 0.24 * time) * vec4(rand(st + 0.13*time), rand(st + 0.12*time), rand(st + 0.15*time), 0.0);
     //outColor = vec4(1.0 * abs(noise(1000.0 * uv)), 0.0, 0.0, 1.0);
 }

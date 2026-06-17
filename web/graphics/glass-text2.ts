@@ -85,7 +85,6 @@ export class GlassText2 {
     private sdf_framebuffer: WebGLFramebuffer;
     private sdf_framebuffer_tex: WebGLTexture;
     private sdf_framebuffer_depth: WebGLTexture;
-    private mouse_pos = [0.0, 0.0];
     private sphere_pos = [0.0, 0.0];
     private sphere_velocity = [0.1, 0.1];
 
@@ -104,38 +103,46 @@ export class GlassText2 {
             uniform: ["mtsdf_tex", "scene_tex", "rect", "glyph_rects", "char_rects", "text_rects", "char_count", "time", "mouse_pos"]
         });
 
-        this.sdf_framebuffer = createFramebuffer(this.gl);
-        this.sdf_framebuffer_tex = createBlankTextureR8(gl, viewport.width, viewport.height);
-        this.sdf_framebuffer_depth = createDepthTexture(gl, viewport.width, viewport.height);
-        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.sdf_framebuffer);
+        [this.sdf_framebuffer, this.sdf_framebuffer_tex, this.sdf_framebuffer_depth] = this.createSdfFramebuffer(viewport);
+
+        this.mtsdf_tex = createPNGTexture(this.gl, "/assets/font.png");
+        loadJSONFile("/assets/font.json").then(result => this.font_atlas = result);
+    }
+
+    public resize(viewport: Viewport) {
+        [this.sdf_framebuffer, this.sdf_framebuffer_tex, this.sdf_framebuffer_depth] = this.createSdfFramebuffer(viewport);
+    }
+
+    private createSdfFramebuffer(viewport: Viewport) {
+        const sdf_framebuffer = createFramebuffer(this.gl);
+        const sdf_framebuffer_tex = createBlankTextureR8(this.gl, viewport.width, viewport.height);
+        const sdf_framebuffer_depth = createDepthTexture(this.gl, viewport.width, viewport.height);
+        this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, sdf_framebuffer);
         this.gl.framebufferTexture2D(
             this.gl.FRAMEBUFFER,
             this.gl.COLOR_ATTACHMENT0,
             this.gl.TEXTURE_2D,
-            this.sdf_framebuffer_tex,
+            sdf_framebuffer_tex,
             0);
         this.gl.framebufferTexture2D(
             this.gl.FRAMEBUFFER,
             this.gl.DEPTH_ATTACHMENT,
             this.gl.TEXTURE_2D,
-            this.sdf_framebuffer_depth,
+            sdf_framebuffer_depth,
             0);
         this.gl.drawBuffers([this.gl.COLOR_ATTACHMENT0]);
         if (this.gl.checkFramebufferStatus(this.gl.FRAMEBUFFER) !== this.gl.FRAMEBUFFER_COMPLETE) {
             console.error("Framebuffer is not complete");
         }
 
-        this.mtsdf_tex = createPNGTexture(this.gl, "/assets/font.png");
-        loadJSONFile("/assets/font.json").then(result => this.font_atlas = result);
-
-        document.body.addEventListener("mousemove", evt => this.mouse_pos = [evt.clientX / document.body.clientWidth, 1.0 - evt.clientY / document.body.clientHeight]);
+        return [sdf_framebuffer, sdf_framebuffer_tex, sdf_framebuffer_depth]
     }
 
     public frame(frame_params: FrameParams, text_instances: GlassTextInstance[]) {
     
         const gl = this.gl;
 
-        const {glyph_rects, char_rects, text_rects, char_count} = this.computeText(text_instances);
+        const {glyph_rects, char_rects, text_rects, char_count} = this.computeText(text_instances, frame_params.viewport);
 
         this.sdf_composite_program.use();
 
@@ -204,14 +211,20 @@ export class GlassText2 {
         if (this.sphere_pos[1] < -1.0)
             this.sphere_velocity[1] *= -1.0
 
-        const sphere_dist = vec2.dist(this.sphere_pos, [2.0 * this.mouse_pos[0] - 1.0, 2.0 * this.mouse_pos[1] - 1.0]);
+        const sphere_dist = vec2.dist(this.sphere_pos, [2.0 * frame_params.mouse_pos[0] - 1.0, 2.0 * frame_params.mouse_pos[1] - 1.0]);
         
-        const sphere_dir = vec2.sub(vec2.create(), this.sphere_pos, [2.0 * this.mouse_pos[0] - 1.0, 2.0 * this.mouse_pos[1] - 1.0]);
+        const apsect_ratio = frame_params.viewport.width / frame_params.viewport.height
+        const sphere_dir = vec2.sub(vec2.create(), this.sphere_pos, [2.0 * frame_params.mouse_pos[0] - 1.0, 2.0 * frame_params.mouse_pos[1] - 1.0]);
         vec2.normalize(sphere_dir, sphere_dir);
         vec2.scaleAndAdd(this.sphere_velocity, this.sphere_velocity, sphere_dir, Math.min(0.003, Math.max(-0.003, -0.003 * sphere_dist * sphere_dist)))
         vec2.scaleAndAdd(this.sphere_velocity, this.sphere_velocity, this.sphere_velocity, -0.001)
         this.sphere_velocity = [Math.min(0.1, Math.max(-0.1, this.sphere_velocity[0])), Math.min(0.1, Math.max(-0.1, this.sphere_velocity[1]))]
-        text_rects.push([0.5 * (1.0 + this.sphere_pos[0] - 0.05), 0.5 * (1.0 + this.sphere_pos[1] - (0.05 * frame_params.viewport.width / frame_params.viewport.height)), 0.1 , 0.1 * frame_params.viewport.width / frame_params.viewport.height]);
+        //text_rects.push([0.5 * (1.0 + this.sphere_pos[0] - 0.05), 0.5 * (1.0 + this.sphere_pos[1] - (0.05 * frame_params.viewport.width / frame_params.viewport.height)), 0.1 , 0.1 * frame_params.viewport.width / frame_params.viewport.height]);
+        text_rects.push([
+            0.5 * (1.0 + this.sphere_pos[0]) - 0.05 / apsect_ratio,
+            0.5 * (1.0 + this.sphere_pos[1]) - 0.05,
+            0.1 / apsect_ratio,
+            0.1]);
         
         gl.uniform4fv(this.glass_text_program.uniforms.text_rects, text_rects.flat(), 0, 0);
 
@@ -223,7 +236,7 @@ export class GlassText2 {
         gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, text_rects.length);
     }
 
-    private computeText(text_instances: GlassTextInstance[]): {
+    private computeText(text_instances: GlassTextInstance[], viewport: Viewport): {
         glyph_rects: number[][],
         char_rects: number[][],
         text_rects: number[][],
@@ -265,7 +278,11 @@ export class GlassText2 {
         for (const text_instance of text_instances) {
             let h_cursor = 0;
             let v_cursor = 0;
-            const em = text_instance.em / max_height;
+            const em = [
+                text_instance.em * 16 / viewport.width,
+                text_instance.em * 16 / viewport.height / max_height
+                //text_instance.em / max_height,
+            ];
             let line_widths: number[] = [];
             let total_height = 0;
             let total_width = 0;
@@ -281,7 +298,7 @@ export class GlassText2 {
                     const char_code = char.charCodeAt(0);
                     const glyph = glyph_map.get(char_code);
                     if (!glyph) {
-                        h_cursor += em;
+                        h_cursor += em[0];
                         continue;
                     }
 
@@ -290,23 +307,23 @@ export class GlassText2 {
                         if (advance_map !== undefined) {
                             const advance = advance_map.get(text.charCodeAt(i));
                             if (advance !== undefined) {
-                                h_cursor += em * advance;
+                                h_cursor += em[0] * advance;
                             }
                         }
                     }
 
-                    const x = h_cursor + (em * glyph.planeBounds.left);
-                    const w = (h_cursor + (em * glyph.planeBounds.right)) - x;
-                    h_cursor += em * glyph.advance;
+                    const x = h_cursor + (em[0] * glyph.planeBounds.left);
+                    const w = (h_cursor + (em[0] * glyph.planeBounds.right)) - x;
+                    h_cursor += em[0] * glyph.advance;
                     line_width = h_cursor;
                 }
                 line_widths.push(line_width);
                 total_width = Math.max(total_width, line_width);
-                v_cursor -= em / max_height * (1 + this.font_atlas.metrics.lineHeight);
+                v_cursor -= em[1] / max_height * (1 + this.font_atlas.metrics.lineHeight);
                 h_cursor = 0;
             }
 
-            total_height = text_lines.length * (em * max_height * (1 + this.font_atlas.metrics.lineHeight));
+            total_height = text_lines.length * (em[1] * max_height * (1 + this.font_atlas.metrics.lineHeight));
 
             let top_left: vec2 = [0.0, 0.0];
             if (text_instance.top_left) {
@@ -322,7 +339,8 @@ export class GlassText2 {
             text_rects.push([top_left[0] - 0.005, top_left[1] - total_height - 0.005, total_width + 0.01, total_height + 0.01]);
 
             h_cursor = top_left[0];
-            v_cursor = top_left[1] - em * max_height * (1 + this.font_atlas.metrics.lineHeight);
+            //v_cursor = top_left[1] - em[1] * max_height * (1 + this.font_atlas.metrics.lineHeight);
+            v_cursor = top_left[1] - em[1] * max_height * (1 + this.font_atlas.metrics.lineHeight);
             for (let line_index = 0; line_index < text_lines.length; line_index++) {
                 const line = text_lines[line_index];
                 const text = line.text;
@@ -344,7 +362,7 @@ export class GlassText2 {
                     const char_code = char.charCodeAt(0);
                     const glyph = glyph_map.get(char_code);
                     if (!glyph) {
-                        h_cursor += text_dir * em;
+                        h_cursor += text_dir * em[0];
                         continue;
                     }
 
@@ -353,16 +371,16 @@ export class GlassText2 {
                         if (advance_map !== undefined) {
                             const advance = advance_map.get(text.charCodeAt(i));
                             if (advance !== undefined) {
-                                h_cursor += text_dir * em * advance;
+                                h_cursor += text_dir * em[0] * advance;
                             }
                         }
                     }
 
                     if (!line.invert) {
-                        const x = h_cursor + (em * glyph.planeBounds.left);
-                        const y = v_cursor + (em * glyph.planeBounds.bottom);
-                        const w = ((h_cursor + (em * glyph.planeBounds.right)) - x);
-                        const h = (v_cursor + (em * glyph.planeBounds.top)) - y;
+                        const x = h_cursor + (em[0] * glyph.planeBounds.left);
+                        const y = v_cursor + (em[1] * glyph.planeBounds.bottom);
+                        const w = ((h_cursor + (em[0] * glyph.planeBounds.right)) - x);
+                        const h = (v_cursor + (em[1] * glyph.planeBounds.top)) - y;
                         char_rects.push([
                             x,
                             y,
@@ -370,10 +388,10 @@ export class GlassText2 {
                             h,
                         ]);
                     } else {
-                        const x = h_cursor - (em * glyph.planeBounds.left);
-                        const y = v_cursor + (em * glyph.planeBounds.bottom);
-                        const w = (h_cursor - (em * glyph.planeBounds.right)) - x;
-                        const h = (v_cursor + (em * glyph.planeBounds.top)) - y;
+                        const x = h_cursor - (em[0] * glyph.planeBounds.left);
+                        const y = v_cursor + (em[1] * glyph.planeBounds.bottom);
+                        const w = (h_cursor - (em[0] * glyph.planeBounds.right)) - x;
+                        const h = (v_cursor + (em[1] * glyph.planeBounds.top)) - y;
                         char_rects.push([
                             x,
                             y,
@@ -382,7 +400,7 @@ export class GlassText2 {
                         ]);
                     }
 
-                    h_cursor += text_dir * em * glyph.advance;
+                    h_cursor += text_dir * em[0] * glyph.advance;
 
                     if (!line.invert) {
                         glyph_rects.push([
@@ -401,7 +419,7 @@ export class GlassText2 {
                     }
                 }
 
-                v_cursor -= em * (1 + this.font_atlas.metrics.lineHeight);
+                v_cursor -= em[1] * (1 + this.font_atlas.metrics.lineHeight);
                 h_cursor = 0;
             }
         }

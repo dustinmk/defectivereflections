@@ -35,7 +35,7 @@ void main() {
     vec4 anchor = texture(anchor_tex, index);
     particle_color = anchor.a;
     vec4 position = projection * world_position;
-    vec3 quad_position = points[gl_VertexID].xyz * (0.007 + 0.007 * instance_offset);
+    vec3 quad_position = points[gl_VertexID].xyz * (0.005 + 0.005 * instance_offset);
     //gl_Position = projection * vec4(quad_position + anchor.xyz, 1.0);
     gl_Position = perspective * vec4(quad_position + position.xyz, 1.0);
     position = gl_Position;

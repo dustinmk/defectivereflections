@@ -15,9 +15,8 @@ import { FrameParams, Viewport } from "./graphics";
 
 export class GlassSphere {
     private glass_sphere_program: ShaderProgram;
-    private mouse_pos: number[] = [0.0, 0.0];
 
-    constructor(private readonly gl: WebGL2RenderingContext, viewport: Viewport, navigate: (path: string) => void) {
+    constructor(private readonly gl: WebGL2RenderingContext) {
 
         this.glass_sphere_program = createProgram(this.gl, {
             vs_source: glass_sphere_vs,
@@ -25,27 +24,6 @@ export class GlassSphere {
             attrib: [],
             uniform: ["quad_size", "scene_tex", "depth_tex", "eye_pos", "eye_dir", "projection", "perspective", "inv_transform", "resolution", "highlight_color"]
         });
-
-        document.body.addEventListener("mousemove", evt => {
-            this.mouse_pos = [
-                (evt.clientX / document.body.clientWidth * 2.0 - 1.0) * viewport.width / viewport.height,
-                -1.0 * (evt.clientY / document.body.clientHeight * 2.0 - 1.0)
-            ];
-
-            const mouse_range = vec2.length(vec2.sub(vec2.create(), this.mouse_pos, [0.0, 0.0]));
-            // if (mouse_range <= 0.1 * viewport.width / viewport.height) {
-            //     document.body.style.cursor = "pointer";
-            // } else {
-            //     document.body.style.cursor = "auto";
-            // }
-        });
-
-        document.body.addEventListener("click", evt => {
-            const mouse_range = vec2.length(vec2.sub(vec2.create(), this.mouse_pos, [0.0, 0.0]));
-            if (mouse_range <= 0.1 * viewport.width / viewport.height) {
-                navigate("/articles");
-            }
-        })
     }
 
     public frame(frame_params: FrameParams) {
@@ -102,7 +80,7 @@ export class GlassSphere {
             screen_radius * 2 / frame_params.viewport.height * frame_params.viewport.width,
         ];
 
-        const mouse_range = vec2.length(vec2.sub(vec2.create(), this.mouse_pos, [0.0, 0.0]));
+        const mouse_range = vec2.length(vec2.sub(vec2.create(), frame_params.mouse_pos, [0.0, 0.0]));
         if (mouse_range <= radius * frame_params.viewport.width / frame_params.viewport.height) {
             gl.uniform3f(this.glass_sphere_program.uniforms.highlight_color, 0.1, 0.1, 0.1);
         } else {

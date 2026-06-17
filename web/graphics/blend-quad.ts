@@ -16,7 +16,7 @@ import { FrameParams, Viewport } from "./graphics";
 export class BlendQuad {
     private blend_quad_program: ShaderProgram;
 
-    constructor(private readonly gl: WebGL2RenderingContext, viewport: Viewport) {
+    constructor(private readonly gl: WebGL2RenderingContext) {
 
         this.blend_quad_program = createProgram(this.gl, {
             vs_source: blend_quad_vs,

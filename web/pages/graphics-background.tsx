@@ -7,6 +7,7 @@ const link_assets = [
     {link: "/articles", label: "Games", model: "/assets/tank1.glb", scale: 0.35, center: [1.5, 0.2, 0]}
 ];
 
+const center_asset = {link: "/articles", center: [0.0, 0.0, 0.0], scale: 0.3}
 class GraphicsBackground {
     private graphics: Graphics;
     private mouse_pos: [number, number] = [0.0, 0.0];
@@ -18,7 +19,7 @@ class GraphicsBackground {
         private canvas: HTMLCanvasElement,
         private navigate: (path: string) => void
     ) {
-        this.graphics = new Graphics(canvas, navigate);
+        this.graphics = new Graphics(canvas);
 
         document.body.addEventListener("mousemove", evt => {
             this.mouse_pos = [
@@ -27,8 +28,40 @@ class GraphicsBackground {
             ];
         });
 
+        document.body.addEventListener("touchstart", evt => {
+            evt.preventDefault();
+            
+            const touch = evt.touches.item(0);
+            if (touch !== null) {
+                this.mouse_pos = [
+                    touch.clientX / document.body.clientWidth * 2.0 - 1.0,
+                    -1.0 * (touch.clientY / document.body.clientHeight * 2.0 - 1.0)
+                ];
+            }
+        })
+
+        document.body.addEventListener("touchmove", evt => {
+            evt.preventDefault();
+
+            const touch = evt.touches.item(0);
+            if (touch !== null) {
+                this.mouse_pos = [
+                    touch.clientX / document.body.clientWidth * 2.0 - 1.0,
+                    -1.0 * (touch.clientY / document.body.clientHeight * 2.0 - 1.0)
+                ];
+            }
+        })
+
+        document.body.addEventListener("touchend", evt => {
+
+        })
+
+        document.body.addEventListener("touchcancel", evt => {
+
+        })
+
         document.body.addEventListener("click", evt => {
-            for (const path of [{link: "/articles", center: [0.0, 0.0, 0.0], scale: 0.3}, ...link_assets]) {
+            for (const path of [center_asset, ...link_assets]) {
                 if (this.mouseIntersects(path.center, path.scale)) {
                     navigate(path.link);
                 }
@@ -61,7 +94,7 @@ class GraphicsBackground {
             asset_index += 1;
         }
 
-        if (intersect) {
+        if (intersect || this.mouseIntersects(center_asset.center, center_asset.scale)) {
             document.body.style.cursor = "pointer";
         } else {
             document.body.style.cursor = "auto";
@@ -98,7 +131,7 @@ class GraphicsBackground {
                         {text: this.current_logo_text[0], invert: false},
                         {text: this.current_logo_text[1], invert: true}
                     ],
-                    em: 0.05,
+                    em: 4.0,
                     top_left: [0.01, 0.99]
                 },
                 ...link_assets.map(asset => {
@@ -106,7 +139,7 @@ class GraphicsBackground {
                     const world_text_top = vec3.add(vec3.create(), world_text_bottom, vec3.fromValues(0.0, 0.05, 0.0));
                     const bottom_center = this.graphics.camera.toScreenPos(world_text_bottom);
                     const top_center = this.graphics.camera.toScreenPos(world_text_top);
-                    const em = top_center[1] - bottom_center[1];
+                    const em = (top_center[1] - bottom_center[1]) / 0.02;
 
                     return {
                         lines: [{text: asset.label, invert: false}],

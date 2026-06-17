@@ -100,6 +100,7 @@ void main() {
     
     //outColor = vec4(offset, 0.0, 1.0);
     outColor = vec4(mix(sample_pos.rgb, vec3(1.0, 1.0, 1.0), color), sample_pos.a);
+    //outColor = vec4(mix(sample_pos.rgb, vec3(1.0, 1.0, 1.0), 0.5), sample_pos.a);
     //outColor = vec4(sample_pos.rgb, 1.0);
     //outColor = texture(scene_tex, uv);
     // outColor = vec4(sample_pos.rgb, 1.0);

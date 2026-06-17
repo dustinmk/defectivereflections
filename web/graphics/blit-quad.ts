@@ -17,7 +17,7 @@ export class BlitQuad {
     private blend_quad_depth_program: ShaderProgram;
     private blend_quad_nodepth_program: ShaderProgram;
 
-    constructor(private readonly gl: WebGL2RenderingContext, viewport: Viewport) {
+    constructor(private readonly gl: WebGL2RenderingContext) {
 
         const regex_depth_def = /#ifdef\s+DEPTH([\s\S]*?)#endif/g
         const regex_depth_ndef = /#ifndef\s+DEPTH([\s\S]*?)#endif/g
