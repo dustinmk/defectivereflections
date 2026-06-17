@@ -19,6 +19,8 @@ for (let i = 0; i < link_assets.length; i++) {
     ]
 }
 
+let pause = localStorage.getItem("pause") === "true" || false;
+
 const center_asset = {link: "/articles", center: [0.0, 0.0, 0.0], scale: 0.3}
 class GraphicsBackground {
     private graphics: Graphics;
@@ -170,13 +172,9 @@ class GraphicsBackground {
             ]
         });
 
-        if (!this.halt) {
+        if (!this.halt && !pause) {
             window.requestAnimationFrame(() => this.frame());
         }
-    }
-
-    public doHalt() {
-        this.halt = true;
     }
 }
 
@@ -184,6 +182,7 @@ export default function() {
     const navigate = useNavigate();
     const graphics_canvas = React.useRef<HTMLCanvasElement>(null);
     const [graphics_background, setGraphicsBackground] = React.useState<GraphicsBackground | null>(null);
+    const [internalPause, setInternalPause] = React.useState(pause);
 
     React.useEffect(() => {
         if (graphics_canvas.current !== null) {
@@ -198,5 +197,25 @@ export default function() {
 
     }, [graphics_canvas.current])
 
-    return <canvas ref={graphics_canvas} style={{width: "100%", height: "100%", zIndex: -100, position: "fixed"}} />;
+    return <>
+        <canvas ref={graphics_canvas} style={{width: "100%", height: "100%", zIndex: -100, position: "fixed"}} />
+        <button
+            style={{position: "relative", zIndex: "10000"}}
+            onClick={() => {
+                if (!pause) {
+                    pause = true;
+                    setInternalPause(pause);
+                    localStorage.setItem("pause", "true");
+                } else {
+                    pause = false;
+                    setInternalPause(pause);
+                    localStorage.setItem("pause", "false");
+                    graphics_background && graphics_background.frame()
+                }
+            }}
+        >
+            {!internalPause && <i className="fa-solid fa-pause"></i>}
+            {internalPause && <i className="fa-solid fa-play"></i>}
+        </button>
+    </>;
 }
