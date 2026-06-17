@@ -4,8 +4,20 @@ import { useNavigate } from "react-router";
 import { Graphics } from "web/graphics/graphics";
 
 const link_assets = [
-    {link: "/articles", label: "Games", model: "/assets/tank1.glb", scale: 0.35, center: [1.5, 0.2, 0]}
+    {link: "/articles", label: "Games", model: "/assets/tank.glb", scale: 0.35, center: [1.5, 0.2, 0]},
+    {link: "/articles", label: "Music", model: "/assets/piano.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
+    {link: "/articles", label: "Poetry", model: "/assets/scroll.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
+    {link: "/articles", label: "Research", model: "/assets/books.glb", scale: 0.35, center: [0.2, 0.2, 1.5]}
 ];
+
+for (let i = 0; i < link_assets.length; i++) {
+    const step_angle = 2.0 * Math.PI / link_assets.length;
+    link_assets[i].center = [
+        Math.cos(step_angle * i),
+        0.1,
+        Math.sin(step_angle * i)
+    ]
+}
 
 const center_asset = {link: "/articles", center: [0.0, 0.0, 0.0], scale: 0.3}
 class GraphicsBackground {
@@ -115,7 +127,7 @@ class GraphicsBackground {
             mouse_pos: this.mouse_pos,
             particle_field: {
                 assets: [
-                    {path: "/assets/terrain1.glb", scale: [1.0, 1.0, 1.0], translate: [0, 0, 0]},
+                    {path: "/assets/terrain2.glb", scale: [1.0, 1.0, 1.0], translate: [0, 0, 0]},
                     ...link_assets.map(asset => ({
                         path: asset.model,
                         scale: [asset.scale, asset.scale, asset.scale],
@@ -135,12 +147,16 @@ class GraphicsBackground {
                     top_left: [0.01, 0.99]
                 },
                 ...link_assets.map(asset => {
-                    const world_text_bottom = vec3.add(vec3.create(), asset.center, vec3.fromValues(0.0, 0.0, 0.0));
-                    const world_text_top = vec3.add(vec3.create(), world_text_bottom, vec3.fromValues(0.0, 0.05, 0.0));
-                    const bottom_center = this.graphics.camera.toScreenPos(world_text_bottom);
-                    const top_center = this.graphics.camera.toScreenPos(world_text_top);
-                    const em = (top_center[1] - bottom_center[1]) / 0.02;
-
+                    const calcHeight = (pos: vec3) => {
+                        const world_bottom = vec3.add(vec3.create(), pos, vec3.fromValues(0.0, 0.0, 0.0));
+                        const world_top = vec3.add(vec3.create(), pos, vec3.fromValues(0.0, 0.05, 0.0));
+                        const bottom_center = this.graphics.camera.toScreenPos(world_bottom);
+                        const top_center = this.graphics.camera.toScreenPos(world_top);
+                        return top_center[1] - bottom_center[1];
+                    }
+                    const height_ratio = calcHeight(asset.center) / calcHeight([0, 0, 0])
+                    const em = 1.5 * height_ratio
+                    const bottom_center = this.graphics.camera.toScreenPos(asset.center);
                     return {
                         lines: [{text: asset.label, invert: false}],
                         em,

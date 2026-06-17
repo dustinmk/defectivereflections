@@ -147,7 +147,6 @@ export class GlassText2 {
         this.sdf_composite_program.use();
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.sdf_framebuffer);
-
         gl.viewport(0, 0, frame_params.viewport.width, frame_params.viewport.height);
         gl.disable(gl.DEPTH_TEST);
         gl.disable(gl.CULL_FACE);
@@ -171,7 +170,6 @@ export class GlassText2 {
         gl.uniform4fv(this.sdf_composite_program.uniforms.char_rects, char_rects.flat(), 0, 0);     
 
         gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, char_count);
-
 
 
         this.glass_text_program.use();

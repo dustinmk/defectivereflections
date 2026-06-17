@@ -26,7 +26,7 @@ export class ParticleField {
     private anchor_tex: WebGLTexture | null = null;
     private velocity_tex: WebGLTexture[];
     private loaded_models: Set<string> = new Set();
-    private particle_count = [256, 256];
+    private particle_count = [512, 512];
 
     constructor(private readonly gl: WebGL2RenderingContext) {
 

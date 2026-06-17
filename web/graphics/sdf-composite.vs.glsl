@@ -1,6 +1,7 @@
 #version 300 es
 
-uniform vec4 char_rects[256];
+uniform vec4 char_rects[128];
+uniform vec4 glyph_rects[128];
 
 vec2 points[4] = vec2[4](
     vec2(0.0, 1.0),
@@ -11,7 +12,7 @@ vec2 points[4] = vec2[4](
 
 out vec2 uv;
 out vec2 position;
-flat out int instanceID;
+out vec4 glyph_rect;
 
 void main() {
     vec4 char_rect = char_rects[gl_InstanceID];
@@ -20,5 +21,5 @@ void main() {
     gl_Position = vec4(pos, 0.0, 1.0);
     position = pos;
     uv = points[gl_VertexID].xy;
-    instanceID = gl_InstanceID;
+    glyph_rect = glyph_rects[gl_InstanceID];
 }

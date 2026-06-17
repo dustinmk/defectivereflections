@@ -5,11 +5,11 @@ precision highp float;
 uniform sampler2D mtsdf_tex;
 uniform float time;
 
-uniform vec4 glyph_rects[256];
+
 
 in vec2 uv;
 in vec2 position;
-flat in int instanceID;
+in vec4 glyph_rect;
 layout(location = 0) out vec4 outColor;
 
 float median(float r, float g, float b) {
@@ -17,7 +17,6 @@ float median(float r, float g, float b) {
 }
 
 void main() {
-    vec4 glyph_rect = glyph_rects[instanceID];
     vec2 glyph_uv = vec2(
         glyph_rect.x + (glyph_rect.z - glyph_rect.x) * uv.x,
         glyph_rect.y + (glyph_rect.w - glyph_rect.y) * uv.y);
