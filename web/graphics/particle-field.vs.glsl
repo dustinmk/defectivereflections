@@ -2,6 +2,7 @@
 
 uniform sampler2D position_tex;
 uniform sampler2D anchor_tex;
+uniform sampler2D normal_tex;
 uniform mat4 projection;
 uniform mat4 perspective;
 uniform vec2 particle_count;
@@ -23,6 +24,7 @@ out float eye_dist;
 out float instance_offset;
 out vec4 position;
 out float particle_color;
+out vec4 normal;
 
 void main() {
     instance_offset = float(gl_InstanceID) / (particle_count.x * particle_count.y);
@@ -33,6 +35,7 @@ void main() {
     vec2 index = vec2(col / particle_count.x, row / particle_count.y); 
     vec4 world_position = texture(position_tex, index);
     vec4 anchor = texture(anchor_tex, index);
+    normal = texture(normal_tex, index);
     particle_color = anchor.a;
     vec4 position = projection * world_position;
     vec3 quad_position = points[gl_VertexID].xyz * (0.005 + 0.005 * instance_offset);

@@ -73,6 +73,10 @@ class GraphicsBackground {
         })
 
         document.body.addEventListener("click", evt => {
+            if ((evt.target as HTMLElement).closest(".app__content") && !(evt.target as HTMLElement).classList.contains("app__content")) {
+                return;
+            }
+            
             for (const path of [center_asset, ...link_assets]) {
                 if (this.mouseIntersects(path.center, path.scale)) {
                     navigate(path.link);

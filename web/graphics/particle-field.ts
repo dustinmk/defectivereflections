@@ -24,9 +24,10 @@ export class ParticleField {
     private simulation_framebuffers: WebGLFramebuffer[];
     private position_tex: WebGLTexture[];
     private anchor_tex: WebGLTexture | null = null;
+    private normal_tex: WebGLTexture | null = null;
     private velocity_tex: WebGLTexture[];
     private loaded_models: Set<string> = new Set();
-    private particle_count = [512, 512];
+    private particle_count = [256, 256];
 
     constructor(private readonly gl: WebGL2RenderingContext) {
 
@@ -34,7 +35,7 @@ export class ParticleField {
             vs_source: particle_field_vs,
             fs_source: particle_field_fs,
             attrib: [],
-            uniform: ["anchor_tex", "position_tex", "velocity_tex", "projection", "perspective", "time", "particle_count", "color_tex", "eye_pos"]
+            uniform: ["anchor_tex", "position_tex", "velocity_tex", "normal_tex", "projection", "perspective", "time", "particle_count", "color_tex", "eye_pos"]
         });
 
         this.simulation_program = createProgram(this.gl, {
@@ -55,29 +56,6 @@ export class ParticleField {
             position_data.push(row);
         }
         this.position_tex = [createIndexedStateTexture(this.gl, position_data), createIndexedStateTexture(this.gl, position_data)];
-
-        const faces = [
-            [[0, 0, 1], [1, 1, 0]],
-            [[0, 0, -1], [1, 1, 0]],
-            [[0, 1, 0], [1, 0, 1]],
-            [[0, -1, 0], [1, 0, 1]],
-            [[1, 0, 0], [0, 1, 1]],
-            [[-1, 0, 0], [0, 1, 1]]
-        ]
-        const anchor_data: number[][][] = [];
-        for (let y = 0; y < this.particle_count[1]; ++y) {
-            const row: number[][] = [];
-            for (let x = 0; x < this.particle_count[0]; ++x) {
-                const face = faces[Math.floor(Math.random() * faces.length)];
-                row.push([
-                    face[1][0] * (2.0 * Math.random() - 1.0) + face[0][0],
-                    face[1][1] *  (2.0 * Math.random() - 1.0) + face[0][1],
-                    face[1][2] * (2.0 * Math.random() - 1.0) + face[0][2],
-                    1.0]);
-            }
-            anchor_data.push(row);
-        }
-        //this.anchor_tex = createIndexedStateTexture(this.gl, anchor_data);
 
         const velocity_data: number[][][] = [];
         for (let y = 0; y < this.particle_count[1]; ++y) {
@@ -102,8 +80,11 @@ export class ParticleField {
 
     public async loadModel(models: {path: string, scale: vec3, translate: vec3}[]) {
 
+        const light = vec3.normalize(vec3.create(), [1.0, -1.0, 1.0]);
+
         const face_areas = [];
         const face_vertices = [];
+        const face_normals: vec3[] = [];
         const face_color = [];
         let total_area = 0;
         
@@ -129,24 +110,21 @@ export class ParticleField {
 
                 face_vertices.push(v0, v1, v2);
 
-                const x = vec3.sub(vec3.create(), v1, v0);
-                const y = vec3.sub(vec3.create(), v2, v0);
-
                 const a = vec3.dist(v0, v1);
                 const b = vec3.dist(v0, v2);
                 const c = vec3.dist(v1, v2);
 
                 const s = 0.5 * (a + b + c);
-                const face_area = Math.sqrt(s * (s - a) * (s - b) * (s - c))
+                let face_area = Math.sqrt(s * (s - a) * (s - b) * (s - c));
+                face_area *= color < 1 ? 0.5 : 1.0;
 
-                // const area_mat = mat3.fromValues(
-                //     x[0], y[0], 1,
-                //     x[1], y[1], 1,
-                //     x[2], y[2], 1
-                // );
-                // const face_area = Math.abs(0.5 * mat3.determinant(area_mat))
+                let normal = vec3.create();
+                vec3.add(normal, mesh.vertices[mesh.indices[index]].normal, mesh.vertices[mesh.indices[index + 1]].normal);
+                vec3.add(normal, normal, mesh.vertices[mesh.indices[index + 2]].normal);
+                vec3.normalize(normal, normal);
                 face_areas.push(face_area);
                 face_color.push(color);
+                face_normals.push(normal);
                 total_area += face_area;
             }
 
@@ -154,8 +132,10 @@ export class ParticleField {
         }
 
         const anchor_data: number[][][] = [];
+        const anchor_normals: vec3[][] = [];
         for (let y = 0; y < this.particle_count[1]; ++y) {
             const row: number[][] = [];
+            const normal_row: vec3[] = [];
             for (let x = 0; x < this.particle_count[0]; ++x) {
                 let face_index = 0;
 
@@ -174,20 +154,29 @@ export class ParticleField {
                 const r1 = Math.random();
                 const r2 = Math.random();
 
-                const p = vec3.add(vec3.create(), vec3.add(vec3.create(), 
-                        vec3.scale(vec3.create(), v0, (1 - Math.sqrt(r1))),
-                        vec3.scale(vec3.create(), v1, Math.sqrt(r1) * (1 - r2))),
-                        vec3.scale(vec3.create(), v2, r2 * Math.sqrt(r1)))
+                const p = vec3.create();
+                vec3.add(
+                    p,
+                    vec3.scale(vec3.create(), v0, (1 - Math.sqrt(r1))),
+                    vec3.scale(vec3.create(), v1, Math.sqrt(r1) * (1 - r2)));
+                vec3.add(
+                    p,
+                    p,
+                    vec3.scale(vec3.create(), v2, r2 * Math.sqrt(r1))
+                )
 
                 row.push([
                     p[0],
                     p[1],
                     p[2],
                     face_color[face_index]]);
+                normal_row.push([...vec3.scaleAndAdd(vec3.create(), [0.5, 0.5, 0.5], face_normals[face_index], 0.5), 0.0])
             }
             anchor_data.push(row);
+            anchor_normals.push(normal_row);
         }
         this.anchor_tex = createIndexedStateTexture(this.gl, anchor_data);
+        this.normal_tex = createIndexedStateTexture(this.gl, anchor_normals as number[][][]);
     }
 
     public frame(frame_params: FrameParams, highlighted_asset_index: number | null, [mouse_ray_start, mouse_ray_dir]: [vec3, vec3]) {
@@ -278,6 +267,10 @@ export class ParticleField {
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, this.anchor_tex);
         gl.uniform1i(this.particle_program.uniforms.anchor_tex, 1);
+
+        gl.activeTexture(gl.TEXTURE2);
+        gl.bindTexture(gl.TEXTURE_2D, this.normal_tex);
+        gl.uniform1i(this.particle_program.uniforms.normal_tex, 2);
 
         gl.uniform1f(this.particle_program.uniforms.time, frame_params.now / 1000.0);
         gl.uniform2f(this.particle_program.uniforms.particle_count, this.particle_count[0], this.particle_count[1]);

@@ -209,10 +209,10 @@ export class GlassText2 {
         if (this.sphere_pos[1] < -1.0)
             this.sphere_velocity[1] *= -1.0
 
-        const sphere_dist = vec2.dist(this.sphere_pos, [2.0 * frame_params.mouse_pos[0] - 1.0, 2.0 * frame_params.mouse_pos[1] - 1.0]);
+        const sphere_dist = vec2.dist(this.sphere_pos, frame_params.mouse_pos);
         
         const apsect_ratio = frame_params.viewport.width / frame_params.viewport.height
-        const sphere_dir = vec2.sub(vec2.create(), this.sphere_pos, [2.0 * frame_params.mouse_pos[0] - 1.0, 2.0 * frame_params.mouse_pos[1] - 1.0]);
+        const sphere_dir = vec2.sub(vec2.create(), this.sphere_pos, frame_params.mouse_pos);
         vec2.normalize(sphere_dir, sphere_dir);
         vec2.scaleAndAdd(this.sphere_velocity, this.sphere_velocity, sphere_dir, Math.min(0.003, Math.max(-0.003, -0.003 * sphere_dist * sphere_dist)))
         vec2.scaleAndAdd(this.sphere_velocity, this.sphere_velocity, this.sphere_velocity, -0.001)
@@ -223,6 +223,8 @@ export class GlassText2 {
             0.5 * (1.0 + this.sphere_pos[1]) - 0.05,
             0.1 / apsect_ratio,
             0.1]);
+        //console.log(`${sphere_dist}, ${sphere_dir}`)
+        console.log(`${this.sphere_pos}\t\t${[frame_params.mouse_pos[0], frame_params.mouse_pos[1]]}`)
         
         gl.uniform4fv(this.glass_text_program.uniforms.text_rects, text_rects.flat(), 0, 0);
 

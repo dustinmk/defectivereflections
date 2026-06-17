@@ -27,7 +27,7 @@ void main() {
     vec4 velocity = texture(velocity_tex, uv);
     vec4 anchor = texture(anchor_tex, uv);
 
-    vec4 offset = abs(anchor.a - highlight_index) < 0.001 ? vec4(0.0, 0.1, 0.0, 0.0) : vec4(0.0, 0.0, 0.0, 0.0);
+    vec4 offset = abs(floor(anchor.a) - highlight_index) < 0.001 ? vec4(0.0, 0.1, 0.0, 0.0) : vec4(0.0, 0.0, 0.0, 0.0);
     anchor += offset;
     float added_noise = abs(anchor.a - highlight_index) < 0.001 ? 20.0 : 1.0;
 
