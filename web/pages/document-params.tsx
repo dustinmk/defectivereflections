@@ -1,4 +1,4 @@
-import { Category, Status } from "common/model";
+import { Category, Section, Status } from "common/model";
 import React, { Ref } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useDocuments } from "web/stores/admin-document-store";
@@ -35,7 +35,7 @@ export function StatusPage() {
             <li><AddStatusElement /></li>
             {[...doc_store.status_list.values()].map(status => {
                 return <li>
-                    <StatusElement status={status} />
+                    <StatusElement status={status} key={status.id} />
                 </li>
             })}
         </ul>
@@ -69,6 +69,52 @@ function StatusElement({status}: {status: Status}) {
     </div>
 }
 
+export function SectionPage() {
+    const doc_store = useDocuments();
+
+    React.useEffect(() => {
+        doc_store.fetchMeta();
+    }, [])
+
+    return <div className="admin-content content form">
+        <ul className="param-rows">
+            <li><AddSectionElement /></li>
+            {[...doc_store.section_list.values()].map(section => {
+                return <li>
+                    <SectionElement section={section} key={section.id} />
+                </li>
+            })}
+        </ul>
+    </div>
+}
+
+function AddSectionElement() {
+    const doc_store = useDocuments();
+    const [name, setName] = React.useState("");
+    const [display_name, setDisplayName] = React.useState("");
+
+    return <div>
+        <input type="text" value={name} onChange={evt => setName(evt.target.value)}></input>
+        <input type="text" value={display_name} onChange={evt => setDisplayName(evt.target.value)}></input>
+        <button><i className="fa-solid fa-plus" onClick={() => doc_store.addSection(name, display_name)}></i></button>
+    </div>
+}
+
+function SectionElement({section}: {section: Section}) {
+    const doc_store = useDocuments();
+    const [name, setName] = React.useState(section.name);
+    const [display_name, setDisplayName] = React.useState(section.display_name);
+
+    const [edit, ref] = useFocus<HTMLDivElement>(() => doc_store.updateSection(section.id, name, display_name), [name, display_name]);
+
+    return <div ref={ref} >
+        <input type="text" value={name} disabled={!edit} onChange={evt => setName(evt.target.value)}></input>
+        <input type="text" value={display_name} disabled={!edit} onChange={evt => setDisplayName(evt.target.value)}></input>
+        <button onClick={() => doc_store.deleteSection(section.id)}><i className="fa-solid fa-trash"></i></button>
+        <button><i className="fa-solid fa-pencil"></i></button>
+    </div>
+}
+
 export function CategoryPage() {
     const doc_store = useDocuments();
 
@@ -81,7 +127,7 @@ export function CategoryPage() {
             <li key="add-category"><AddCategoryElement /></li>
             {[...doc_store.category_list.values()].map(category => {
                 return <li key={category.name}>
-                    <CategoryElement category={category} />
+                    <CategoryElement category={category} key={category.id} />
                 </li>
             })}
         </ul>

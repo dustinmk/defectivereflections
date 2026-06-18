@@ -18,6 +18,15 @@ export const meta_api = {
     fetch_section_list: async (status_id: number | string | null, category_id: number | string | null) => {
         return (await await get("section", {status_id: status_id || "", category_id: category_id || ""})).section as Section[];
     },
+    add_section: async (name: string, display_name: string) => {
+        return (await post(`section`, {name, display_name})).section as Section[];
+    },
+    update_section: async (id: number, name: string, display_name: string) => {
+        return (await put(`section/${id}`, {name, display_name})).section as Section[]
+    },
+    delete_section: async (id: number) => {
+        return (await del(`section/${id}`)).section as Section[]
+    },
     fetch_category_list: async (status_id: number | string | null, section_id: number | string | null) => {
         return (await get("category", {status_id: status_id || "", section_id: section_id || ""})).category as Category[]
     },

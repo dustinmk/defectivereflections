@@ -2,7 +2,7 @@ import { Document, DocumentVersion, Status } from "common/model";
 import { validate } from "jsonschema"
 import app from "server/app";
 import db from "server/db";
-import { copyAttachments, createCategory, createDocument, createDocumentVersion, createStatus, deleteCategory, deleteStatus, DocumentSortTerm, fetchDocument, fetchDocumentById, fetchDocumentVersion, fetchDocumentVersionById, listAttachments, listCategory, listDocuments, listSections, listStatus, removeAttachment, removeDocument, removeDocumentVersion, removePrimaryDocumentVersion, saveAttachment, setPrimaryDocumentVersion, updateCategory, updateDocument, updateDocumentVersion, updateStatus, uploadFile, viewDocuments } from "server/repository/documents";
+import { copyAttachments, createCategory, createDocument, createDocumentVersion, createSection, createStatus, deleteCategory, deleteSection, deleteStatus, DocumentSortTerm, fetchDocument, fetchDocumentById, fetchDocumentVersion, fetchDocumentVersionById, listAttachments, listCategory, listDocuments, listSections, listStatus, removeAttachment, removeDocument, removeDocumentVersion, removePrimaryDocumentVersion, saveAttachment, setPrimaryDocumentVersion, updateCategory, updateDocument, updateDocumentVersion, updateSection, updateStatus, uploadFile, viewDocuments } from "server/repository/documents";
 import { requireRole } from "server/repository/users";
 import { toInt } from "web/util";
 // import { createAdminUser, getUserCount, validateUser } from "server/repository/users";
@@ -71,6 +71,31 @@ app.delete("/api/category/:id", requireRole("admin"), async (req, res) => {
 app.get("/api/section", async (req, res) => {
     const {status_id, category_id} = req.query as {status_id: string, category_id: string};
     return res.json({section: await listSections(status_id, category_id)});
+});
+
+app.post("/api/section", requireRole("admin"), async (req, res) => {
+    const {name, display_name} = req.body as {name: string, display_name: string};
+
+    await createSection(name, display_name);
+
+    return res.json({section: await listSections()});
+});
+
+app.put("/api/section/:id", requireRole("admin"), async (req, res) => {
+    const {name, display_name} = req.body as {name: string, display_name: string};
+    const id = parseInt(req.params.id);
+
+    await updateSection(id, name, display_name);
+
+    return res.json({section: await listSections()});
+});
+
+app.delete("/api/section/:id", requireRole("admin"), async (req, res) => {
+    const id = parseInt(req.params.id);
+
+    await deleteSection(id);
+
+    return res.json({section: await listSections()});
 });
 
 app.get("/api/public/document", async (req, res) => {

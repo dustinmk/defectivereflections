@@ -59,6 +59,18 @@ export const useDocuments = create(immer(combine(init_state, (set, get) => ({
         const status_result = await meta_api.delete_status(id);
         set({status_list: new Map<number, Status>(status_result.map(status => [status.id, status]))});
     },
+    addSection: async (name: string, display_name: string) => {
+        const section_result = await meta_api.add_section(name, display_name);
+        set({section_list: new Map<number, Section>(section_result.map(section => [section.id, section]))});
+    },
+    updateSection: async (id: number, name: string, display_name: string) => {
+        const section_result = await meta_api.update_section(id, name, display_name);
+        set({section_list: new Map<number, Section>(section_result.map(section => [section.id, section]))});
+    },
+    deleteSection: async (id: number) => {
+        const section_result = await meta_api.delete_section(id);
+        set({section_list: new Map<number, Section>(section_result.map(section => [section.id, section]))});
+    },
     addCategory: async (name: string, parent_id: number | null) => {
         const category_result = await meta_api.add_category(name, parent_id);
         set({category_list: new Map<number, Category>(category_result.map(category => [category.id, category]))});

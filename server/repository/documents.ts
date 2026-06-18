@@ -12,7 +12,7 @@ const PARTIAL_DOC_VERSION_COLS = ["id", "created", "edited", "revision", "subtit
 
 export async function listStatus(section_id?: number | string | null, category_id?: number | string | null) {
     return await db.transaction(async trx => {
-        if (section_id === undefined && category_id === undefined) {
+        if ((section_id === undefined || section_id === "") && (category_id === undefined || category_id === "")) {
             return await trx.select()
                 .from<Status>("status")
                 .orderBy("status.name")
@@ -78,7 +78,7 @@ export async function deleteStatus(id: number) {
 
 export async function listCategory(status_id?: number | string | null, section_id?: number | string | null) {
     return await db.transaction(async trx => {
-        if (status_id === undefined && section_id === undefined) {
+        if ((status_id === undefined || status_id === "") && (section_id === undefined || section_id === "")) {
             return await trx.select()
                 .from<Status>("category")
                 .orderBy("category.name")
@@ -143,7 +143,7 @@ export async function deleteCategory(id: number) {
 
 export async function listSections(status_id?: number | string | null, category_id?: number | string | null) {
     return await db.transaction(async trx => {
-        if (status_id === undefined && category_id === undefined) {
+        if ((status_id === undefined || status_id === "") && (category_id === undefined || category_id === "")) {
             return await trx.select()
                 .from<Status>("section")
                 .orderBy("section.name")
@@ -182,6 +182,30 @@ export async function listSections(status_id?: number | string | null, category_
         }
     });
 }
+
+export async function createSection(name: string, display_name: string) {
+    return await db.transaction(async trx => {
+        return await trx("section")
+            .insert({name, display_name});
+    });
+}
+
+export async function updateSection(id: number, name: string, display_name: string) {
+    return await db.transaction(async trx => {
+        return await trx("section")
+            .where("id", id)
+            .update({name, display_name});
+    });
+}
+
+export async function deleteSection(id: number) {
+    return await db.transaction(async trx => {
+        return await trx("section")
+            .where("id", id)
+            .del();
+    });
+}
+
 
 export type DocumentSortTerm = "name-asc" | "name-desc" | "edited-asc" | "edited-desc" | "created-asc" | "created-desc" | null;
 

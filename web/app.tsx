@@ -14,7 +14,7 @@ import DocumentsEdit from "./pages/documents-edit";
 import { Modal } from "./components/modal";
 import { ArticlesPage } from "./pages/main-pages";
 import ArticleView from "./pages/article-view";
-import { CategoryPage, DocumentParamsPage, StatusPage } from "./pages/document-params";
+import { CategoryPage, DocumentParamsPage, SectionPage, StatusPage } from "./pages/document-params";
 import { ApiError } from "./api/api";
 import LoginPage from "web/pages/login";
 
@@ -38,6 +38,7 @@ const router = createBrowserRouter([
         ]},
         {path: "params", element: <DocumentParamsPage />, children: [
             {path: "status", element: <StatusPage />},
+            {path: "sections", element: <SectionPage />},
             {path: "categories", element: <CategoryPage />}
         ]}
     ]},
