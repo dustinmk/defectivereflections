@@ -62,7 +62,7 @@ const common_config = {
     mode: production
         ? "production"
         : "development",
-    devtool: "inline-source-map",
+    devtool: production ? false : "inline-source-map",
     module: {
         rules: module_rules
     },

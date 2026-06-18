@@ -4,11 +4,12 @@ import { useNavigate } from "react-router";
 import { Graphics } from "web/graphics/graphics";
 
 const link_assets = [
-    {link: "/articles", label: "Games", model: "/assets/tank.glb", scale: 0.35, center: [1.5, 0.2, 0]},
-    {link: "/articles", label: "Music", model: "/assets/piano.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
-    {link: "/articles", label: "Poetry", model: "/assets/scroll.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
-    {link: "/articles", label: "Research", model: "/assets/books.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
-    {link: "/articles", label: "Computer", model: "/assets/computer.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
+    {link: "/articles", label: ["Game Engine", "& Design"], model: "/assets/tank.glb", scale: 0.35, center: [1.5, 0.2, 0]},
+    {link: "/articles", label: ["Music", "Reviews"], model: "/assets/piano.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
+    {link: "/articles", label: ["Poetry", "& Literature"], model: "/assets/scroll.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
+    {link: "/articles", label: ["Philosophy", "& Research"], model: "/assets/books.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
+    {link: "/articles", label: ["Algorithms", "& Programming"], model: "/assets/computer.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
+    {link: "/articles", label: ["Personal", "& Essays"], model: "/assets/window.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
 ];
 
 for (let i = 0; i < link_assets.length; i++) {
@@ -151,7 +152,7 @@ class GraphicsBackground {
                         {text: this.current_logo_text[1], invert: true}
                     ],
                     em: 4.0,
-                    top_left: [0.01, 0.99]
+                    bottom_left: [0.01, 0.01]
                 },
                 ...link_assets.map(asset => {
                     const calcHeight = (pos: vec3) => {
@@ -163,9 +164,9 @@ class GraphicsBackground {
                     }
                     const height_ratio = calcHeight(asset.center) / calcHeight([0, 0, 0])
                     const em = 1.5 * height_ratio
-                    const bottom_center = this.graphics.camera.toScreenPos(asset.center);
+                    const bottom_center = this.graphics.camera.toScreenPos([asset.center[0], asset.center[1] + 0.3, asset.center[2]]);
                     return {
-                        lines: [{text: asset.label, invert: false}],
+                        lines: asset.label.map(label => ({text: label, invert: false})),
                         em,
                         bottom_center: [0.5 * (bottom_center[0] + 1.0), 0.5 * (bottom_center[1] + 1.0)]
                     }
@@ -206,7 +207,7 @@ export default function() {
     return <>
         <canvas ref={graphics_canvas} style={{width: "100%", height: "100%", zIndex: -100, position: "fixed"}} />
         <button
-            style={{position: "relative", zIndex: "10000"}}
+            style={{position: "absolute", zIndex: "10000"}}
             onClick={() => {
                 if (!pause) {
                     pause = true;

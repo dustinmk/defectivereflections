@@ -134,7 +134,6 @@ function useFocus<T extends HTMLElement>(onBlur?: () => void, deps?: React.Depen
             const target = evt.target as HTMLElement;
 
             if (edit && target.contains(elem) && target !== elem) {
-                console.log(elem)
                 setEdit(false);
                 if (onBlur) {
                     onBlur();

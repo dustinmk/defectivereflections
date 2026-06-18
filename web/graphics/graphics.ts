@@ -57,12 +57,14 @@ export class Camera {
     public frame(now: number) {
         //now = 0.0;
         const aspect = this.viewport.width / this.viewport.height;
-        this.eye_pos = vec3.fromValues(3.0 * Math.sin(0.1 * now / 1000.0), 1.0, 3.0 * Math.cos(0.1 * now / 1000.0));
+        this.eye_pos = vec3.fromValues(3.0 * Math.sin(0.1 * now / 1000.0), 2.0 / aspect, 3.0 * Math.cos(0.1 * now / 1000.0));
         this.look_pos = vec3.fromValues(0.0, 0.0, 0.0);
         this.eye_dir = vec3.sub(vec3.create(), this.look_pos, this.eye_pos);
         vec3.normalize(this.eye_dir, this.eye_dir);
         this.projection = mat4.lookAt(mat4.create(), this.eye_pos, this.look_pos, [0, 1, 0]);
-        this.perspective = mat4.perspective(mat4.create(), (0.4 / aspect * Math.PI), aspect, 0.01, 100.0);
+
+        const angle = Math.tan(1.5 / vec3.len(this.eye_pos));
+        this.perspective = mat4.perspective(mat4.create(), angle * 2.0 / aspect, aspect, 0.01, 100.0);
     }
 
     public toWorldRay(screen_ray: vec2) {

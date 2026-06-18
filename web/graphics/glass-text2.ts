@@ -74,6 +74,7 @@ export interface GlassTextInstance {
     em: number;
     top_left?: vec2;
     bottom_center?: vec2;
+    bottom_left?: vec2;
     lines: {text: string, invert: boolean}[];
 }
 
@@ -223,8 +224,6 @@ export class GlassText2 {
             0.5 * (1.0 + this.sphere_pos[1]) - 0.05,
             0.1 / apsect_ratio,
             0.1]);
-        //console.log(`${sphere_dist}, ${sphere_dir}`)
-        console.log(`${this.sphere_pos}\t\t${[frame_params.mouse_pos[0], frame_params.mouse_pos[1]]}`)
         
         gl.uniform4fv(this.glass_text_program.uniforms.text_rects, text_rects.flat(), 0, 0);
 
@@ -334,6 +333,11 @@ export class GlassText2 {
                     text_instance.bottom_center[0] - (total_width / 2.0),
                     text_instance.bottom_center[1] + total_height
                 ];
+            } else if (text_instance.bottom_left) {
+                top_left = [
+                    text_instance.bottom_left[0],
+                    text_instance.bottom_left[1] + total_height
+                ]
             }
 
             text_rects.push([top_left[0] - 0.005, top_left[1] - total_height - 0.005, total_width + 0.01, total_height + 0.01]);
