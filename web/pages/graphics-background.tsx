@@ -4,12 +4,12 @@ import { useNavigate } from "react-router";
 import { Graphics } from "web/graphics/graphics";
 
 const link_assets = [
-    {link: "/articles", label: ["Game Engine", "& Design"], model: "/assets/tank.glb", scale: 0.35, center: [1.5, 0.2, 0]},
-    {link: "/articles", label: ["Music", "Reviews"], model: "/assets/piano.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
-    {link: "/articles", label: ["Poetry", "& Literature"], model: "/assets/scroll.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
-    {link: "/articles", label: ["Philosophy", "& Research"], model: "/assets/books.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
-    {link: "/articles", label: ["Algorithms", "& Programming"], model: "/assets/computer.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
-    {link: "/articles", label: ["Personal", "& Essays"], model: "/assets/window.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
+    {link: "/articles/all/game%20design", label: ["Game Engine", "&Design"], model: "/assets/tank.glb", scale: 0.35, center: [1.5, 0.2, 0]},
+    {link: "/articles/review/music", label: ["Music", "Reviews"], model: "/assets/piano.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
+    {link: "/articles/poetry/all", label: ["Poetry", "&Literature"], model: "/assets/scroll.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
+    {link: "/articles/research/philosophy", label: ["Philosophy", "&Research"], model: "/assets/books.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
+    {link: "/articles/all/programming", label: ["Algorithms", "&Programming"], model: "/assets/computer.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
+    {link: "/articles/essay/all", label: ["Personal", "&Essays"], model: "/assets/window.glb", scale: 0.35, center: [0.2, 0.2, 1.5]},
 ];
 
 for (let i = 0; i < link_assets.length; i++) {

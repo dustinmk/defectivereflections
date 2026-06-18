@@ -22,7 +22,10 @@ const router = createBrowserRouter([
         element: <HomePage />,
         errorElement: <Error404Page />,
         children: [
-            {path: "articles", element: <ArticlesPage />, children: [{path: ":document_path", element: <ArticleView />}]},
+            {path: "articles", element: <ArticlesPage />, children: [
+                {path: ":document_path", element: <ArticleView />},
+            ]},
+            {path: "articles/:section/:category", element: <ArticlesPage />}
         ],
     },
     {path: "admin", element: <Admin />, children: [

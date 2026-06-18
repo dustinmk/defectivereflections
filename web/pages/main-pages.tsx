@@ -9,8 +9,6 @@ export function ArticlesPage() {
         doc_store.fetchMeta();
     }, [])
 
-    const section = [...doc_store.section_list.values()].find(section => section.name === "essay");
-
-    return <ArticleSelect section_id={section ? section.id : null}/>
+    return <ArticleSelect />
 }
 

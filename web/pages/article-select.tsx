@@ -3,22 +3,82 @@ import { document_api } from "web/api/document_api";
 import { public_api } from "web/api/public_api";
 import { useDocuments } from "web/stores/admin-document-store";
 import { Category, Document, Section, SORT_OPTIONS as SORT_OPTIONS, SortMethod, Status } from "common/model";
-import { Outlet } from "react-router";
+import { Outlet, useParams } from "react-router";
 import { Link } from "react-router-dom";
 import { meta_api } from "web/api/meta_api";
 import { Chooser } from "web/components/chooser";
 
-export default function({section_id}: {section_id: number | null}) {
+export default function() {
+    const doc_store = useDocuments();
+    const params = useParams() as {section: string | undefined, category: string | undefined}
+    const [filter_section, setFilterSection] = React.useState<Section | null | undefined>(undefined);
+    const [filter_category, setFilterCategory] = React.useState<Category | null | undefined>(undefined);
+
+    React.useEffect(() => {
+        doc_store.fetchMeta().then(result => {
+            if (params.section) {
+                const section = result.section.find(section => {
+                    return params.section && section.name.toLocaleLowerCase().trim() === params.section.toLocaleLowerCase().trim()
+                });
+                if (section !== undefined) {
+                    setFilterSection(section);
+                } else {
+                    setFilterSection(null)
+                }
+            } else {
+                setFilterSection(null)
+            }
+
+            if (params.category) {
+                const category = result.category.find(category => {
+                    return params.category && category.name.toLocaleLowerCase().trim() === params.category.toLocaleLowerCase().trim()
+                });
+                if (category !== undefined) {
+                    setFilterCategory(category);
+                } else {
+                    setFilterCategory(null)
+                }
+            } else {
+                setFilterCategory(null)
+            }
+        })
+    }, [params]);
+
+    if (params && filter_category === undefined && filter_section === undefined) {
+        return <></>
+    }
+
+    return <ArticleSelect
+        filter_section={filter_section || null}
+        setFilterCategory={v => setFilterCategory(v as Category | null)}
+        filter_category={filter_category || null}
+        setFilterSection={v => setFilterSection(v as Section | null)}
+    />
+}
+
+function ArticleSelect({
+    filter_section,
+    setFilterSection,
+    filter_category,
+    setFilterCategory
+}: {
+    filter_section: Section | null,
+    setFilterSection: React.Dispatch<React.SetStateAction<Section | null>>,
+    filter_category: Category | null,
+    setFilterCategory: React.Dispatch<React.SetStateAction<Category | null>>
+}) {
 
     const doc_store = useDocuments();
-
-    const [filter_section, setFilterSection] = React.useState<Section | null>(null);
-    const [filter_category, setFilterCategory] = React.useState<Category | null>(null);
     const [filter_status, setFilterStatus] = React.useState<Status | null>(null);
     const [sort_method, setSortMethod] = React.useState<SortMethod | null>(null);
 
     React.useEffect(() => {
-        doc_store.fetchMeta(filter_section ? filter_section.id : null, filter_status ? filter_status.id : null, filter_category ? filter_category.id : null);
+        doc_store.fetchMeta(
+            filter_section ? filter_section.id : null,
+            filter_status ? filter_status.id : null,
+            filter_category ? filter_category.id : null
+        );
+
         doc_store.fetchDocuments({
             category_id: filter_category ? filter_category.id : null,
             section_id: filter_section ? filter_section.id : null,
@@ -146,7 +206,7 @@ function DocumentItem({document}: {document: Document}) {
         {status && <span className="document-item__status">Status: {status.display_name}</span>}
     </div>
     return <li>
-        <Link to={document.path}>
+        <Link to={`/articles/${document.path}`}>
             {elem}
         </Link>
     </li>

@@ -8,7 +8,7 @@ import { toInt } from "web/util";
 
 app.get("/api/status", async (req, res) => {
     const {section_id, category_id} = req.query as {section_id: string, category_id: string};
-    const status = await listStatus(toInt(section_id), toInt(category_id))
+    const status = await listStatus(section_id, category_id)
     return res.json({status});
 });
 
@@ -39,7 +39,7 @@ app.delete("/api/status/:id", async (req, res) => {
 
 app.get("/api/category", async (req, res) => {
     const {status_id, section_id} = req.query as {status_id: string, section_id: string};
-    return res.json({category: await listCategory(toInt(status_id), toInt(section_id))});
+    return res.json({category: await listCategory(status_id, section_id)});
 });
 
 app.post("/api/category", async (req, res) => {
@@ -69,7 +69,7 @@ app.delete("/api/category/:id", async (req, res) => {
 
 app.get("/api/section", async (req, res) => {
     const {status_id, category_id} = req.query as {status_id: string, category_id: string};
-    return res.json({section: await listSections(toInt(status_id), toInt(category_id))});
+    return res.json({section: await listSections(status_id, category_id)});
 });
 
 app.get("/api/public/document", async (req, res) => {
@@ -104,7 +104,7 @@ app.get("/api/public/document/:path", async (req, res) => {
 app.get("/api/document", async (req, res) => {
     const {category_id, section_id, status_id, sort_method} = req.query as {category_id: string, section_id: string, status_id: string, sort_method: string};
 
-    return res.json({documents: await listDocuments(toInt(category_id), toInt(section_id), toInt(status_id), sort_method)});
+    return res.json({documents: await listDocuments(category_id, section_id, status_id, sort_method)});
 });
 
 app.get("/api/document/:path", async (req, res) => {

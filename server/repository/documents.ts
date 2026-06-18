@@ -10,7 +10,7 @@ import fs from "fs";
 
 const PARTIAL_DOC_VERSION_COLS = ["id", "created", "edited", "revision", "subtitle", "version_number", "status_id"];
 
-export async function listStatus(section_id?: number | null, category_id?: number | null) {
+export async function listStatus(section_id?: number | string | null, category_id?: number | string | null) {
     return await db.transaction(async trx => {
         if (section_id === undefined && category_id === undefined) {
             return await trx.select()
@@ -25,12 +25,27 @@ export async function listStatus(section_id?: number | null, category_id?: numbe
                 .leftJoin("document", "document.id", "=", "document_primary_version.document_id")
                 .leftJoin("document_category", "document_category.document_id", "document.id")
             
-            if (section_id) {
-                query = query.where("document.section_id", section_id)
+            
+            if (typeof section_id === "string" && section_id.length > 0) {
+                const section_id_num = parseInt(section_id);
+                if (!isNaN(section_id_num)) {
+                    query = query.where("document.section_id", section_id_num)
+                } else {
+                    query = query
+                        .leftJoin("section", "section.id", "=", "document.section_id")
+                        .whereILike("section.name", section_id)
+                }
             }
             
-            if (category_id) {
-                query = query.where("document_category.category_id", category_id)
+            if (typeof category_id === "string" && category_id.length > 0) {
+                const category_id_num = parseInt(category_id);
+                if (!isNaN(category_id_num)) {
+                    query = query.where("document_category.category_id", category_id)
+                } else {
+                    query = query
+                        .leftJoin("category", "category.id", "=", "document_category.category_id")
+                        .whereILike("category.name", category_id)
+                } 
             }
             
             return await query.orderBy("status.name");
@@ -61,7 +76,7 @@ export async function deleteStatus(id: number) {
     });
 }
 
-export async function listCategory(status_id?: number | null, section_id?: number | null) {
+export async function listCategory(status_id?: number | string | null, section_id?: number | string | null) {
     return await db.transaction(async trx => {
         if (status_id === undefined && section_id === undefined) {
             return await trx.select()
@@ -76,12 +91,26 @@ export async function listCategory(status_id?: number | null, section_id?: numbe
                 .leftJoin("document_primary_version", "document_primary_version.document_id", "=", "document.id")
                 .leftJoin("document_version", "document_version.id", "=", "document_primary_version.document_version_id")
                 
-            if (status_id) {
-                query = query.where("document_version.status_id", status_id)
+            if (typeof status_id === "string" && status_id.length > 0) {
+                const status_id_num = parseInt(status_id);
+                if (!isNaN(status_id_num)) {
+                    query = query.where("document_version.status_id", status_id)
+                } else {
+                    query = query
+                        .leftJoin("status", "status.id", "=", "document_version.status_id")
+                        .whereILike("status.name", status_id)
+                }
             }
             
-            if (section_id) {
-                query = query.where("document.section_id", section_id)
+            if (typeof section_id === "string" && section_id.length > 0) {
+                const section_id_num = parseInt(section_id);
+                if (!isNaN(section_id_num)) {
+                    query = query.where("document.section_id", section_id_num)
+                } else {
+                    query = query
+                        .leftJoin("section", "section.id", "=", "document.section_id")
+                        .whereILike("section.name", section_id)
+                }
             }
             
             return await query.orderBy("category.name");
@@ -112,7 +141,7 @@ export async function deleteCategory(id: number) {
     });
 }
 
-export async function listSections(status_id?: number | null, category_id?: number | null) {
+export async function listSections(status_id?: number | string | null, category_id?: number | string | null) {
     return await db.transaction(async trx => {
         if (status_id === undefined && category_id === undefined) {
             return await trx.select()
@@ -127,12 +156,26 @@ export async function listSections(status_id?: number | null, category_id?: numb
                 .leftJoin("document_version", "document_version.id", "=", "document_primary_version.document_version_id")
                 .leftJoin("document_category", "document_category.document_id", "document.id")
             
-            if (status_id) {
-                query = query.where("document_version.status_id", status_id)
+            if (typeof status_id === "string" && status_id.length > 0) {
+                const status_id_num = parseInt(status_id);
+                if (!isNaN(status_id_num)) {
+                    query = query.where("document_version.status_id", status_id)
+                } else {
+                    query = query
+                        .leftJoin("status", "status.id", "=", "document_version.status_id")
+                        .whereILike("status.name", status_id)
+                }
             }
             
-            if (category_id) {
-                query = query.where("document_category.category_id", category_id)
+            if (typeof category_id === "string" && category_id.length > 0) {
+                const category_id_num = parseInt(category_id);
+                if (!isNaN(category_id_num)) {
+                    query = query.where("document_category.category_id", category_id)
+                } else {
+                    query = query
+                        .leftJoin("category", "category.id", "=", "document_category.category_id")
+                        .whereILike("category.name", category_id)
+                } 
             }
             
             return await query.orderBy("section.name");
@@ -186,20 +229,41 @@ export async function viewDocuments(status_id: number | null, section_id: number
     })
 }
 
-export async function listDocuments(category_id: number | null, section_id: number | null, status_id: number | null, sort_method: string | null) {
+export async function listDocuments(category_id: number | string | null, section_id: number | string | null, status_id: number | string | null, sort_method: string | null) {
     return await db.transaction(async trx => {
         let document_query = doc_select(trx);
 
-        if (category_id !== null) {
-            document_query = document_query.where("document_category.category_id", "=", category_id);
+        if (typeof category_id === "string" && category_id.length > 0) {
+            const category_id_num = parseInt(category_id);
+            if (!isNaN(category_id_num)) {
+                document_query = document_query.where("document_category.category_id", category_id)
+            } else {
+                document_query = document_query
+                    .leftJoin("category", "category.id", "=", "document_category.category_id")
+                    .whereILike("category.name", category_id)
+            } 
         }
 
-        if (section_id !== null) {
-            document_query = document_query.where("document.section_id", "=", section_id);
+        if (typeof section_id === "string" && section_id.length > 0) {
+            const section_id_num = parseInt(section_id);
+            if (!isNaN(section_id_num)) {
+                document_query = document_query.where("document.section_id", section_id_num)
+            } else {
+                document_query = document_query
+                    .leftJoin("section", "section.id", "=", "document.section_id")
+                    .whereILike("section.name", section_id)
+            }
         }
 
-        if (status_id !== null) {
-            document_query = document_query.where("document_version.status_id", "=", status_id);
+        if (typeof status_id === "string" && status_id.length > 0) {
+            const status_id_num = parseInt(status_id);
+            if (!isNaN(status_id_num)) {
+                document_query = document_query.where("document_version.status_id", status_id)
+            } else {
+                document_query = document_query
+                    .leftJoin("status", "status.id", "=", "document_version.status_id")
+                    .whereILike("status.name", status_id)
+            }
         }
 
         if (sort_method !== null && sort_method !== undefined && sort_method.length > 0) {
