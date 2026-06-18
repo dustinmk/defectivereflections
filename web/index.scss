@@ -48,8 +48,7 @@ p, span, li, div, button, input, a, img {
 
 .app__content {
     position: relative;
-    min-height: calc(100% - 1rem);
-    padding: 0.5rem 0rem;
+    height: 100%;
     display: flex;
     flex-direction: column;
 
@@ -70,6 +69,7 @@ p, span, li, div, button, input, a, img {
     align-items: center;
     column-gap: 2rem;
     padding: 0.5rem;
+    margin-top: 1rem;
     background: transparent;
     // backdrop-filter: blur(10px);
     // box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.75);
@@ -91,7 +91,7 @@ p, span, li, div, button, input, a, img {
 
             backdrop-filter: blur(10px);
             box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.4);
-            border-radius: 2rem;
+            border-radius: 1em;
             padding: 0.5rem;
 
 
@@ -112,8 +112,10 @@ p, span, li, div, button, input, a, img {
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: space-around;
+    row-gap: 1rem;
+    column-gap: 1rem;
     // margin: 1.5rem 0 0 0;
-    padding: 1.5rem 0 0 0;
+    padding: 1rem;
     // //overflow-x: hidden;
     
 
@@ -131,7 +133,7 @@ p, span, li, div, button, input, a, img {
 .sidebar {
     display: flex;
     flex-direction: column;
-    margin: 0 1rem 1rem 1rem;
+    //margin: 0 1rem 1rem 1rem;
     padding: 1rem;
     width: 20%;
     min-width: 20rem;
@@ -140,7 +142,7 @@ p, span, li, div, button, input, a, img {
     animation: slideFromTop 0.2s ease-out forwards;
     backdrop-filter: blur(10px);
     box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.4);
-    border-radius: 2rem;
+    border-radius: 1rem;
 }
 
 .document-page {
@@ -248,9 +250,11 @@ p, span, li, div, button, input, a, img {
     background-size: contain;
     box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.4);
     //margin: 1rem;
-    margin: 0 1rem;
     border-radius: 1rem;
-    min-width: 70%;
+    //min-width: 70%;
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 40rem;
     position: relative;
     animation: slideFromRight 0.2s ease-out forwards;
 }
@@ -295,11 +299,11 @@ p, span, li, div, button, input, a, img {
 }
 
 .content-preamble {
-    color: #606060;
     font-style: italic;
 
     & p {
         margin: 0;
+        color: #606060;
     }
 
     & > div {

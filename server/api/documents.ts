@@ -7,7 +7,7 @@ import { requireRole } from "server/repository/users";
 import { toInt } from "web/util";
 // import { createAdminUser, getUserCount, validateUser } from "server/repository/users";
 
-app.get("/api/status", requireRole("admin"), async (req, res) => {
+app.get("/api/status", async (req, res) => {
     const {section_id, category_id} = req.query as {section_id: string, category_id: string};
     const status = await listStatus(section_id, category_id)
     return res.json({status});
