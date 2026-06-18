@@ -9,7 +9,7 @@ export default function() {
     const [username, setUsername] = React.useState("");
     const [password, setPassword] = React.useState("");
 
-    return <div>
+    return <div className="admin">
         <input type="text" value={username} onChange={evt => setUsername(evt.target.value)}></input>
         <input type="password" value={password} onChange={evt => setPassword(evt.target.value)}></input>
         <button onClick={() => auth.login(username, password).then(() => navigate("/admin"))}>Login</button>

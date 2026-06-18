@@ -13,8 +13,13 @@ export default function() {
         }
     }, [auth.roles]);
 
+    if (auth.roles.indexOf("admin") < 0) {
+        return <></>
+    }
+
     return <div className="admin">
         <ul className="menu-toolbar">
+            <button onClick={() => auth.logout().then(() => navigate("/login"))}>Logout</button>
             <li><NavLink to="/admin/documents">Documents</NavLink></li>
             <li><NavLink to="/admin/params">Params</NavLink></li>
         </ul>

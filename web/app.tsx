@@ -16,6 +16,7 @@ import { ArticlesPage } from "./pages/main-pages";
 import ArticleView from "./pages/article-view";
 import { CategoryPage, DocumentParamsPage, StatusPage } from "./pages/document-params";
 import { ApiError } from "./api/api";
+import LoginPage from "web/pages/login";
 
 const router = createBrowserRouter([
     {
@@ -23,6 +24,7 @@ const router = createBrowserRouter([
         element: <HomePage />,
         errorElement: <Error404Page />,
         children: [
+            {path: "login", element: <LoginPage />},
             {path: "articles", element: <ArticlesPage />, children: [
                 {path: ":document_path", element: <ArticleView />},
             ]},

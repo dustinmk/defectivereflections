@@ -1,8 +1,8 @@
 const path = require("path");
+const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
-
 const web_template = require("../web/index.html");
 
 const production = process.env.NODE_ENV === "production"
@@ -123,7 +123,7 @@ const web_config = {...common_config, ...{
                 { from: "assets/**/*", to: "" }
             ]
         }),
-        new DefinePlugin({
+        new webpack.DefinePlugin({
             PRODUCTION: JSON.stringify(production)
         })
     ]],

@@ -5,15 +5,17 @@ import db from "server/db";
 
 // qr "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&issuer=Example"
 
+const ITERATIONS = 210 * 1000;
+
 export function createPassword(password: string) {
     const salt = crypto.randomBytes(16).toString("hex");
-    const hash = crypto.pbkdf2Sync(password, salt, 210 * 1000, 64, "sha512");
+    const hash = crypto.pbkdf2Sync(password, salt, ITERATIONS, 64, "sha512");
     return `${salt}.${hash.toString("hex")}`;
 }
 
 export function validatePassword(password: string, hashed_password: string) {
     const [salt, old_hash] = hashed_password.split(".");
-    const new_hash = crypto.pbkdf2Sync(password, salt, 1000, 64, "sha512").toString("hex");
+    const new_hash = crypto.pbkdf2Sync(password, salt, ITERATIONS, 64, "sha512").toString("hex");
     const a = new Uint8Array(Buffer.from(new_hash, "hex"));
     const b = new Uint8Array(Buffer.from(old_hash, "hex"));
     return crypto.timingSafeEqual(a, b);
