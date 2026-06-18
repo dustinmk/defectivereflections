@@ -7,7 +7,7 @@ import config from "server/config";
 
 declare module "express-session" {
     interface SessionData {
-        username: number;
+        username: string;
         roles: string[];
     }
 }

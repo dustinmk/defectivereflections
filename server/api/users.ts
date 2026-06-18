@@ -1,6 +1,6 @@
 import { validate } from "jsonschema"
 import app from "server/app";
-import { createAdminUser, getUserCount, validateUser } from "server/repository/users";
+import { createAdminUser, fetchRoles, getUserCount, validateUser } from "server/repository/users";
 
 app.get("/api/init", async (req, res) => {
     return res.json({need_init: await getUserCount() === 0});
@@ -30,6 +30,17 @@ app.post("/api/init", async (req, res) => {
     const admin_id = await createAdminUser(req.body);
     return res.json({id: admin_id});
 });
+
+app.post("/api/me", async (req, res) => {
+    const username = req.session.username;
+    if (username === undefined) {
+        return res.json({})
+    }
+
+    const roles = await fetchRoles(username);
+
+    return res.json({username: req.body.username, roles: roles});
+})
 
 app.post("/api/login", async (req, res) => {
     const validation_result = validate(req.body, {

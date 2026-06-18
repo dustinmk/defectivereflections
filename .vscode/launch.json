@@ -24,7 +24,7 @@
             ],
             "preLaunchTask": "npm build",
             "env": {
-                "DEBUG": "sdfsdf"
+                "DEBUG": "true"
             }
         },
         {

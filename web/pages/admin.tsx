@@ -7,9 +7,10 @@ import { useAuth } from "web/api/auth_api";
 export default function() {
     const navigate = useNavigate();
     const auth = useAuth();
+
     React.useEffect(() => {
         if (auth.roles.length <= 0 || auth.roles.indexOf("admin") < 0) {
-            navigate("/login")
+            auth.isSignedIn().then(is_signed_in => !is_signed_in && navigate("/login"))
         }
     }, [auth.roles]);
 

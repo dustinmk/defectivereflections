@@ -101,6 +101,21 @@ export async function validateUser(username: string, password: string) {
     });
 }
 
+export async function fetchRoles(username: string) {
+    return await db.transaction(async trx => {
+        const roles = await trx
+            .select<[{
+                role: string
+            }]>()
+            .from("roles")
+            .join("user_roles", "user_roles.role_id", "roles.id")
+            .join("users", "users.id", "user_roles.user_id")
+            .where("users.username", username);
+
+        return roles.map(row => row.role);
+    });
+}
+
 export async function startPasswordReset(username: string) {
     const token = crypto.randomBytes(32).toString("hex");
     const expire = moment().add(24, "h");
