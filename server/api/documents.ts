@@ -3,16 +3,17 @@ import { validate } from "jsonschema"
 import app from "server/app";
 import db from "server/db";
 import { copyAttachments, createCategory, createDocument, createDocumentVersion, createStatus, deleteCategory, deleteStatus, DocumentSortTerm, fetchDocument, fetchDocumentById, fetchDocumentVersion, fetchDocumentVersionById, listAttachments, listCategory, listDocuments, listSections, listStatus, removeAttachment, removeDocument, removeDocumentVersion, removePrimaryDocumentVersion, saveAttachment, setPrimaryDocumentVersion, updateCategory, updateDocument, updateDocumentVersion, updateStatus, uploadFile, viewDocuments } from "server/repository/documents";
+import { requireRole } from "server/repository/users";
 import { toInt } from "web/util";
 // import { createAdminUser, getUserCount, validateUser } from "server/repository/users";
 
-app.get("/api/status", async (req, res) => {
+app.get("/api/status", requireRole("admin"), async (req, res) => {
     const {section_id, category_id} = req.query as {section_id: string, category_id: string};
     const status = await listStatus(section_id, category_id)
     return res.json({status});
 });
 
-app.post("/api/status", async (req, res) => {
+app.post("/api/status", requireRole("admin"), async (req, res) => {
     const {name, display_name} = req.body as {name: string, display_name: string};
 
     await createStatus(name, display_name);
@@ -20,7 +21,7 @@ app.post("/api/status", async (req, res) => {
     return res.json({status: await listStatus()});
 });
 
-app.put("/api/status/:id", async (req, res) => {
+app.put("/api/status/:id", requireRole("admin"), async (req, res) => {
     const {name, display_name} = req.body as {name: string, display_name: string};
     const id = parseInt(req.params.id);
 
@@ -29,7 +30,7 @@ app.put("/api/status/:id", async (req, res) => {
     return res.json({status: await listStatus()});
 });
 
-app.delete("/api/status/:id", async (req, res) => {
+app.delete("/api/status/:id", requireRole("admin"), async (req, res) => {
     const id = parseInt(req.params.id);
 
     await deleteStatus(id);
@@ -42,7 +43,7 @@ app.get("/api/category", async (req, res) => {
     return res.json({category: await listCategory(status_id, section_id)});
 });
 
-app.post("/api/category", async (req, res) => {
+app.post("/api/category", requireRole("admin"), async (req, res) => {
     const {name, parent_id} = req.body as {name: string, parent_id: number};
 
     await createCategory(name, parent_id);
@@ -50,7 +51,7 @@ app.post("/api/category", async (req, res) => {
     return res.json({category: await listCategory()});
 });
 
-app.put("/api/category/:id", async (req, res) => {
+app.put("/api/category/:id", requireRole("admin"), async (req, res) => {
     const {name, parent_id} = req.body as {name: string, parent_id: number};
     const id = parseInt(req.params.id);
 
@@ -59,7 +60,7 @@ app.put("/api/category/:id", async (req, res) => {
     return res.json({category: await listCategory()});
 });
 
-app.delete("/api/category/:id", async (req, res) => {
+app.delete("/api/category/:id", requireRole("admin"), async (req, res) => {
     const id = parseInt(req.params.id);
 
     await deleteCategory(id);
@@ -115,7 +116,7 @@ app.get("/api/document/:path/:version", async (req, res) => {
     return res.json({document_version: await fetchDocumentVersion(req.params.path, parseInt(req.params.version))});
 });
 
-app.post("/api/document/:path/primary/:version", async (req, res) => {
+app.post("/api/document/:path/primary/:version", requireRole("admin"), async (req, res) => {
     const version_number = parseInt(req.params.version);
     if (isNaN(version_number)) {
         return res.status(400).json({error: "Invalid primary document version"});
@@ -128,7 +129,7 @@ app.post("/api/document/:path/primary/:version", async (req, res) => {
     });
 });
 
-app.delete("/api/document/:path/primary", async (req, res) => {
+app.delete("/api/document/:path/primary", requireRole("admin"), async (req, res) => {
     await removePrimaryDocumentVersion(req.params.path);
 
     return res.json({
@@ -136,7 +137,7 @@ app.delete("/api/document/:path/primary", async (req, res) => {
     });
 });
 
-app.delete("/api/document/:path/:version", async (req, res) => {
+app.delete("/api/document/:path/:version", requireRole("admin"), async (req, res) => {
     await removeDocumentVersion(req.params.path, parseInt(req.params.version));
 
     return res.json({
@@ -144,13 +145,13 @@ app.delete("/api/document/:path/:version", async (req, res) => {
     });
 });
 
-app.delete("/api/document/:path", async (req, res) => {
+app.delete("/api/document/:path", requireRole("admin"), async (req, res) => {
     await removeDocument(req.params.path);
 
     return res.json({});
 });
 
-app.put("/api/document/:path/:version", async (req, res) => {
+app.put("/api/document/:path/:version", requireRole("admin"), async (req, res) => {
     const {document, document_version} = req.body as {document: Document, document_version: DocumentVersion};
 
     if (document.id !== null && document_version.id === null) {
@@ -192,7 +193,7 @@ app.get("/api/document/:path/:version/attachment", async (req, res) => {
     });
 });
 
-app.post("/api/upload", async (req, res) => {
+app.post("/api/upload", requireRole("admin"), async (req, res) => {
     const data = req.body as {content: string};
 
     const path = await uploadFile(undefined, data.content);
@@ -202,7 +203,7 @@ app.post("/api/upload", async (req, res) => {
     });
 });
 
-app.post("/api/upload/:path", async (req, res) => {
+app.post("/api/upload/:path", requireRole("admin"), async (req, res) => {
     const data = req.body as {content: string};
 
     const path = await uploadFile(req.params.path, data.content);
@@ -212,7 +213,7 @@ app.post("/api/upload/:path", async (req, res) => {
     });
 });
 
-app.put("/api/document/:path/:version/attachment/:attachment_id", async (req, res) => {
+app.put("/api/document/:path/:version/attachment/:attachment_id", requireRole("admin"), async (req, res) => {
     const data = req.body as {name: string, content_path: string | undefined};
 
     const version = parseInt(req.params.version);
@@ -232,7 +233,7 @@ app.put("/api/document/:path/:version/attachment/:attachment_id", async (req, re
     });
 });
 
-app.post("/api/document/:path/:version/attachment", async (req, res) => {
+app.post("/api/document/:path/:version/attachment", requireRole("admin"), async (req, res) => {
     const data = req.body as {name: string, content_path: string | undefined};
 
     const version = parseInt(req.params.version);
@@ -247,7 +248,7 @@ app.post("/api/document/:path/:version/attachment", async (req, res) => {
     });
 });
 
-app.post("/api/document/:path/:version/copy_attachments", async (req, res) => {
+app.post("/api/document/:path/:version/copy_attachments", requireRole("admin"), async (req, res) => {
     const data = req.body as {attachment_ids: number[], prior_version: number};
 
     const version = parseInt(req.params.version);
@@ -262,7 +263,7 @@ app.post("/api/document/:path/:version/copy_attachments", async (req, res) => {
     });
 });
 
-app.delete("/api/document/:path/:version/attachment/:attachment_id", async (req, res) => {
+app.delete("/api/document/:path/:version/attachment/:attachment_id", requireRole("admin"), async (req, res) => {
     const version = parseInt(req.params.version);
     if (isNaN(version)) {
         return res.status(400).json({error: "Invalid document version"});

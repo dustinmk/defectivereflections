@@ -122,6 +122,9 @@ const web_config = {...common_config, ...{
             patterns: [
                 { from: "assets/**/*", to: "" }
             ]
+        }),
+        new DefinePlugin({
+            PRODUCTION: JSON.stringify(production)
         })
     ]],
     devServer: {

@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { NextFunction, Response } from "express";
 import moment from "moment";
 import db from "server/db";
 
@@ -6,14 +7,16 @@ import db from "server/db";
 
 export function createPassword(password: string) {
     const salt = crypto.randomBytes(16).toString("hex");
-    const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, "sha512");
+    const hash = crypto.pbkdf2Sync(password, salt, 210 * 1000, 64, "sha512");
     return `${salt}.${hash.toString("hex")}`;
 }
 
 export function validatePassword(password: string, hashed_password: string) {
     const [salt, old_hash] = hashed_password.split(".");
     const new_hash = crypto.pbkdf2Sync(password, salt, 1000, 64, "sha512").toString("hex");
-    return new_hash === old_hash;
+    const a = new Uint8Array(Buffer.from(new_hash, "hex"));
+    const b = new Uint8Array(Buffer.from(old_hash, "hex"));
+    return crypto.timingSafeEqual(a, b);
 }
 
 export async function getUserCount() {
@@ -31,6 +34,11 @@ export async function createAdminUser(params: {
     password: string
 }) {
     return await db.transaction(async trx => {
+        const existing_users = await trx.select().from("users");
+        if (existing_users.length > 0) {
+            throw Error("admin already exists"); 
+        }
+        
         const admin_id = await trx.insert({
             name: params.name,
             username: params.username,
@@ -65,7 +73,8 @@ export async function validateUser(username: string, password: string) {
             .select<{
                 password: string,
                 totp_key: string
-            }>("users")
+            }>()
+            .from("users")
             .where("username", username)
             .first();
 
@@ -80,7 +89,7 @@ export async function validateUser(username: string, password: string) {
         const roles = await trx
             .select<[{
                 role: string
-            }]>("role")
+            }]>()
             .from("roles")
             .join("user_roles", "user_roles.role_id", "roles.id")
             .join("users", "users.id", "user_roles.user_id")
@@ -111,7 +120,7 @@ export async function finishPasswordReset(token: string, password: string) {
             .select<{
                 id: number,
                 reset_token_expiry: Date
-            }>("users")
+            }>()
             .where("reset_token", token)
             .first();
 
@@ -149,4 +158,16 @@ export async function enable2FA(username: string) {
 
 export function validate2FA(username: string, code: string) {
 
+}
+
+export function requireRole(role: string) {
+    return (req: Express.Request, res: Response, next: NextFunction) => {
+        const index = req.session.roles && req.session.roles.indexOf(role);
+        if (index !== undefined && index !== null && index >= 0) {
+            return next();
+        }
+
+        res.status(401).json({error: "Unauthorized"});
+        return;
+    }
 }

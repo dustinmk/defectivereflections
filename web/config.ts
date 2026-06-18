@@ -1,4 +1,6 @@
 
+export declare const __PRODUCTION__: boolean;
+
 export const config = {
     api_root: "http://localhost:8000/api",
 };

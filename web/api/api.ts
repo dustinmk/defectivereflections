@@ -1,4 +1,4 @@
-import {config as _config} from "web/config";
+import {__PRODUCTION__, config as _config} from "web/config";
 
 export type GetParams = {[index: string]: string | number | boolean | Array<string | number | boolean>};
 
@@ -25,8 +25,6 @@ export const patch = (path: string, body: object)  => {
 export const del = (path: string, params: GetParams = {}) => {
     return apiQuery(path, "DELETE", params, {}) as {[index: string]: any};
 }
-
-let auth_token: string | null = null;
 
 const encodeParams = (prefix: string, params: GetParams): string => {
     if (typeof params === "string") {
@@ -69,6 +67,17 @@ const encodeParams = (prefix: string, params: GetParams): string => {
     return result;
 }
 
+export class ApiError extends Error {
+    public status: string;
+    public response_message: string;
+
+    constructor(public response: {status: string, message: string}) {
+        super(`API Error ${response.status}: ${response.message}`);
+        this.status = response.status;
+        this.response_message = response.message;
+    }
+}
+
 const apiQuery = async (path: string, method: string, params: GetParams, body: object) => {
     const config = _config;
     
@@ -77,28 +86,6 @@ const apiQuery = async (path: string, method: string, params: GetParams, body: o
     const body_string = JSON.stringify(body);
 
     const headers: string[][] = [["Content-Type", "application/json"]];
-
-    auth_token = localStorage.getItem("df:token");
-    if (auth_token !== null) {
-        const jwt = auth_token.split(".").map(segment => {
-            try {
-                const s = atob(segment);
-                return JSON.parse(s);
-            } catch {
-                return {};
-            }
-        });
-
-        if (new Date(jwt[1].exp * 1000) <= new Date()) {
-            auth_token = null;
-            localStorage.removeItem("df:token");
-            localStorage.removeItem("df:user");
-        }
-    }
-
-    if (auth_token !== null) {
-        headers.push(["Authorization", `Bearer ${auth_token}`]);
-    }
 
     const header_content = headers.reduce(
         (acc, header) => {acc[header[0]] = header[1]; return acc}, {} as {[index: string]: string});
@@ -115,7 +102,7 @@ const apiQuery = async (path: string, method: string, params: GetParams, body: o
         const try_request = async () => {
             const response = await fetch(`${config.api_root}/${path}${param_string}`, {
                 method,
-                mode: "cors",
+                mode: __PRODUCTION__ ? undefined : "cors",
                 headers: header_content,
                 body: method === "GET" || method === "DELETE"
                     ? undefined
@@ -124,35 +111,26 @@ const apiQuery = async (path: string, method: string, params: GetParams, body: o
 
             // Retry only if internal server error, not client errors or redirects
             if ([2, 3, 4].indexOf(Math.floor(response.status / 100)) >= 0) {
-                const bearer = response.headers.get("X-Auth-Token");
-                if (bearer !== null) {
-                    const token = bearer.split(" ")[1];
-                    auth_token = token;
-                    localStorage.setItem("df:token", auth_token);
-                }
-
                 if (is_file) {
                     resolve(await response);
                     return;
                 }
 
-                try{
-                const data = await response.json();
-                
-                if (response.status === 401 || response.status === 403) {
-                    return resolve({
-                        status: "auth",
-                        message: data.message
-                    });
-                } else {
-                    return resolve(data);
-                }
+                try {
+                    const data = await response.json();
+                    
+                    if (response.status === 401 || response.status === 403) {
+                        throw new ApiError({
+                            status: "auth",
+                            message: data.message
+                        });
+                    } else {
+                        return resolve(data);
+                    }
                 }
                 catch (err) {
                     throw err;
                 }
-
-                return;
             }
 
             // Retry if 5xx error or other
@@ -166,9 +144,9 @@ const apiQuery = async (path: string, method: string, params: GetParams, body: o
 
             try {
                 const result = await response.json();
-                resolve({status: "error", message: result.message !== undefined ? result.message : "Unknown error"});
+                throw new ApiError({status: "error", message: result.message !== undefined ? result.message : "Unknown error"});
             } catch (err) {
-                resolve({status: "error", message: `Unknown error: ${err}`})
+                throw new ApiError({status: "error", message: `Unknown error: ${err}`})
             }
         }
 
@@ -179,19 +157,6 @@ const apiQuery = async (path: string, method: string, params: GetParams, body: o
     if (is_file) {
         return response;
     }
-
-    if (response["token"] !== undefined && response["user"] !== undefined) {
-        localStorage.setItem("df:user", JSON.stringify(response["user"]));
-    }
-
-    // if (!("status" in response)) {
-    //     error_service.error("Invalid response from server.");
-    // } else if (response.status === "auth") {
-    //     await useUserStore.getState().logout();
-    //     error_service.error(response.message, "/login");
-    // } else if (response.status !== "okay") {
-    //     error_service.error("message" in response ? response.message as string : "Unspecified error occurred");
-    // }
 
     return response as {[index: string]: any}
 }

@@ -54,5 +54,15 @@ app.post("/api/login", async (req, res) => {
     req.session.username = req.body.username;
     req.session.roles = roles;
 
+    return res.json({username: req.body.username, roles: roles});
+})
+
+app.post("/api/logout", async (req, res) => {
+    console.log(req.session.roles);
+
+    // TODO: Logging
+    req.session.destroy(err => {});
+    res.clearCookie("connect.sid");
+
     return res.json({username: req.body.username});
 })

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ErrorInfo } from "react";
 import { MathJaxContext } from "better-react-mathjax";
 import {
     createBrowserRouter,
@@ -15,6 +15,7 @@ import { Modal } from "./components/modal";
 import { ArticlesPage } from "./pages/main-pages";
 import ArticleView from "./pages/article-view";
 import { CategoryPage, DocumentParamsPage, StatusPage } from "./pages/document-params";
+import { ApiError } from "./api/api";
 
 const router = createBrowserRouter([
     {
@@ -39,6 +40,32 @@ const router = createBrowserRouter([
         ]}
     ]},
 ])
+
+class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, {hasError: boolean}> {
+    constructor(props: {}) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError(error: Error) {
+        // Update state so the next render will show the fallback UI.
+        return { hasError: true };
+    }
+
+    override componentDidCatch(error: Error, info: ErrorInfo) {
+        if (error instanceof ApiError && (error as ApiError).status === "auth") {
+            router.navigate("/admin");
+        }
+    }
+
+    override render() {
+        if (this.state.hasError) {
+            return <p>Error!</p>
+        }
+
+        return this.props.children;
+    }
+}
 
 export default function() {
     return <MathJaxContext>

@@ -22,7 +22,10 @@
             "runtimeArgs": [
                 "-r", "tsconfig-paths/register"
             ],
-            "preLaunchTask": "npm build"
+            "preLaunchTask": "npm build",
+            "env": {
+                "DEBUG": "sdfsdf"
+            }
         },
         {
             "name": "Chrome",

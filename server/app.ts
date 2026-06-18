@@ -10,9 +10,8 @@ declare module "express-session" {
         username: number;
         roles: string[];
     }
-  }
+}
 
-  
 const app = express();
 
 app.use(express.static(path.resolve(process.cwd(), "./web")));
@@ -37,11 +36,17 @@ app.use(session({
     secret: config.session_secret,
     resave: false,
     saveUninitialized: false,
-    cookie: {
-        secure: false,
-        httpOnly: false,
-        maxAge: 1000 * 60 * 10
-    }
+    cookie: process.env.DEBUG === "true"
+        ? {
+            secure: false,
+            httpOnly: false,
+            maxAge: 1000 * 60 * 10
+        }
+        : {
+            secure: true,
+            httpOnly: true,
+            maxAge: 1000 * 60 * 10
+        }
 }));
 
 export default app;
