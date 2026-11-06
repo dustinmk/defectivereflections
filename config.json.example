@@ -1,0 +1,8 @@
+{
+    "port": 8000,
+    "redis": {
+        "host": "localhost",
+        "port": 6379
+    },
+    "session_secret": "OWeaO3iPQeaFr5iS"
+}
