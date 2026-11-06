@@ -65,6 +65,7 @@
   },
   "devDependencies": {
     "@uiw/react-textarea-code-editor": "^3.1.1",
+    "better-react-mathjax": "^3.0.3",
     "copy-folder": "^1.0.10",
     "copy-folder-util": "^1.2.3",
     "copy-webpack-plugin": "^14.0.0",
@@ -81,6 +82,7 @@
     "rehype-raw": "^7.0.0",
     "remark-math": "^6.0.0",
     "resolve-tspaths": "^0.8.23",
+    "resolve-url-loader": "^5.0.0",
     "uuid": "^13.0.0",
     "zustand": "^5.0.11"
   }

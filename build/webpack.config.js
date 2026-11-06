@@ -39,7 +39,12 @@ const module_rules = [
                 loader: "postcss-loader",
                 options: postcss_options
             },
-            "sass-loader"
+            "resolve-url-loader",
+            {
+                loader: "sass-loader",
+                options: { sourceMap: true }
+            }
+            
         ]
     },
     {
