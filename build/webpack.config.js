@@ -164,7 +164,18 @@ const server_config = {...common_config, ...{
     output: {
         path: path.resolve(root, "dist", "server"),
         filename: "server.js"
-    }
+    },
+    plugins: [...common_config.plugins, ...[
+        new CopyPlugin({
+            patterns: [
+                { from: "config.json", to: "dist/config.json" },
+                { from: "knexfile.js", to: "dist/knexfile.js" },
+            ]
+        }),
+        new webpack.DefinePlugin({
+            PRODUCTION: JSON.stringify(production)
+        })
+    ]],
 }}
 
 module.exports = [
