@@ -5,7 +5,7 @@ import "server/api/users";
 import "server/api/documents";
 
 app.get("/*", (req, res) => {
-    res.sendFile(path.resolve(process.cwd(), "./web/index.html"));
+    res.sendFile(path.resolve(process.cwd(), "web", "./index.html"));
 });
 
 const server = app.listen(config.port, "0.0.0.0", async () => {

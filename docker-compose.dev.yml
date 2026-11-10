@@ -19,9 +19,12 @@ services:
         reservations:
           memory: 128M
   redis:
-    image: redis:8
+    image: valkey/valkey:9
+    command: ["valkey-server", "--requirepass", "password"]
     ports:
       - "6379:6379"
+    volumes:
+      - ./build/valkey.conf:/etc/valkey/valkey.conf
     deploy:
       resources:
         limits:
@@ -30,5 +33,7 @@ services:
           memory: 128M
 volumes:
   db_data:
+    driver: local
+  redis_config:
     driver: local
 

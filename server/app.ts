@@ -14,14 +14,14 @@ declare module "express-session" {
 
 const app = express();
 
-app.use(express.static(path.resolve(process.cwd(), "./web")));
+app.use(express.static(path.resolve(process.cwd(), "web")));
 app.use(express.json({ limit: "4mb" }));
 app.set("trust proxy", 1);
 
 // https://www.npmjs.com/package/connect-redis
 
 const redis_client = redis.createClient({
-    url: `redis://${config.redis.host}:${config.redis.port}`
+    url: `redis://:${config.redis.password}@${config.redis.host}:${config.redis.port}`
 });
 
 redis_client.connect().catch(console.error);
